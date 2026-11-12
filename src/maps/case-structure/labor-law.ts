@@ -1,6 +1,6 @@
 import type { CaseStructure } from '../../types/schemas';
 
-const LaborLaw = {
+const _LaborLaw = {
   PKFProvisionProzente: {
     label: 'PKF | Provision (Prozente %)',
     type: 'number',

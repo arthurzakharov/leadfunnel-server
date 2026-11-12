@@ -1,6 +1,6 @@
 import type { CaseStructure } from '../../types/schemas';
 
-const AdministrativeOffenses = {
+const _AdministrativeOffenses = {
   PrioKonvertierungswahrscheinlichkeit: {
     label: 'Prio-Konvertierungswahrscheinlichkeit',
     type: 'number',

@@ -1,6 +1,6 @@
 import type { CaseStructure } from '../../types/schemas';
 
-const Naturalization = {
+const _Naturalization = {
   Einbuergerungsbehoerde: {
     label: 'Einbürgerungsbehörde',
     type: 'record',

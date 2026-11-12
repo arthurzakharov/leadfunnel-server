@@ -1,6 +1,6 @@
 import type { CaseStructure } from '../../types/schemas';
 
-const AdministrativeOffenses = {
+const _AdministrativeOffenses = {
   RechtsschutzversicherungVorhanden: {
     label: 'Rechtsschutzversicherung vorhanden',
     type: 'select',

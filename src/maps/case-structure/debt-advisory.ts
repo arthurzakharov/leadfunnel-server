@@ -1,6 +1,6 @@
 import type { CaseStructure } from '../../types/schemas';
 
-const DebtAdvisory = {
+const _DebtAdvisory = {
   LeadstreckeGlaeubigerMultipleChoice: {
     label: 'Leadstrecke - Gläubiger (Multiple Choice)',
     type: 'multi_select',
