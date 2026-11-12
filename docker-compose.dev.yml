@@ -1,0 +1,16 @@
+# Local development with hot reload: docker compose -f docker-compose.dev.yml up --build
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    container_name: leadfunnel-server
+    ports:
+      - "3001:3000"
+    volumes:
+      # Mount source for hot reload; keep the container's own node_modules
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000

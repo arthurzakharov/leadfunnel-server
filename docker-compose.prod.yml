@@ -1,0 +1,17 @@
+# Production-like run: docker compose -f docker-compose.prod.yml up -d --build
+services:
+  app:
+    build:
+      context: .
+      target: release
+    image: leadfunnel-server:latest
+    container_name: leadfunnel-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - NODE_ENV=production
+      - PORT=3000

@@ -2,5 +2,10 @@ node_modules
 dist
 build
 .git
+.idea
 .env
+.env.*
 npm-debug.log
+Dockerfile
+docker-compose*.yml
+README.md

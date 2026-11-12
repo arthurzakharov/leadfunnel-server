@@ -1,7 +1,10 @@
 {
   "name": "leadfunnel-server",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build"
   },
   "dependencies": {
     "hono": "^4.13.16"

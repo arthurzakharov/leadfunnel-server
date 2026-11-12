@@ -1,19 +1,33 @@
-# --- Stage 1: Build ---
-FROM oven/bun:latest AS base
+# syntax=docker/dockerfile:1
+ARG BUN_VERSION=1.4
+
+# ---------- base ----------
+FROM oven/bun:${BUN_VERSION} AS base
 WORKDIR /app
 
-# This "Smart COPY" tells Docker:
-# "Copy package.json, and copy any lockfile you find (bun, npm, yarn, or pnpm), but don't crash if you don't find them."
-COPY package.json bun.lockb* package-lock.json* yarn.lock* pnpm-lock.yaml* ./
-
-# Install dependencies
-RUN bun install
-
-# Copy the rest of the application code
-COPY . .c
-
-# The default port Hono runs on
+# ---------- dev: all deps, source is bind-mounted by compose ----------
+FROM base AS dev
+ENV NODE_ENV=development
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+COPY . .
 EXPOSE 3000
+CMD ["bun", "run", "--hot", "src/index.ts"]
 
-# Default command (this will be overridden by Docker Compose in development)
+# ---------- prod-deps: production deps only ----------
+FROM base AS prod-deps
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
+# ---------- release: minimal runtime image ----------
+FROM oven/bun:${BUN_VERSION}-slim AS release
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY package.json tsconfig.json ./
+COPY src ./src
+USER bun
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["bun", "-e", "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["bun", "run", "src/index.ts"]
