@@ -1,14 +1,16 @@
-import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import app from './app';
+import { onSignalInterrupt, onSignalTerminate } from './helpers/server-signals';
 
-const app = new Hono();
+const server = serve(
+  {
+    fetch: app.fetch,
+    port: Number(process.env.PORT),
+  },
+  (info) => {
+    console.log(`Server is running on http://localhost:${info.port}`);
+  }
+);
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!');
-});
-
-app.get('/health', (c) => c.json({ status: 'ok' }));
-
-export default {
-  port: Number(process.env.PORT ?? 3000),
-  fetch: app.fetch,
-};
+process.on('SIGINT', () => onSignalInterrupt(server));
+process.on('SIGTERM', () => onSignalTerminate(server));

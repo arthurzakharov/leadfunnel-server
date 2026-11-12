@@ -1,0 +1,27 @@
+my-hono-app/
+├── src/
+│   ├── config/              # Environment variables & app-wide constants
+│   │   └── env.ts           # Zod-validated process.env / c.env bindings
+│   ├── db/                  # Database connection, schemas, and migrations
+│   │   ├── index.ts
+│   │   └── schema.ts
+│   ├── middleware/          # Reusable Hono middleware (auth, logger, error handler)
+│   │   ├── auth.ts
+│   │   └── error.ts
+│   ├── modules/             # Core business logic grouped by feature
+│   │   ├── users/
+│   │   │   ├── users.routes.ts      # Hono route definitions & OpenAPI/Zod validators
+│   │   │   ├── users.service.ts     # Pure business logic & DB calls
+│   │   │   ├── users.schema.ts      # Zod validation schemas & inferred TS types
+│   │   │   └── users.test.ts        # Co-located unit/integration tests
+│   │   └── posts/
+│   │       ├── posts.routes.ts
+│   │       ├── posts.service.ts
+│   │       └── posts.schema.ts
+│   ├── utils/               # Shared helpers (hashing, date formatting, custom errors)
+│   ├── app.ts               # Hono app instantiation, global middleware, route mounting
+│   └── index.ts             # Runtime entry point (Node, Bun, Cloudflare Workers, etc.)
+├── tests/                   # End-to-end (E2E) integration tests
+├── .env.example
+├── package.json
+└── tsconfig.json
