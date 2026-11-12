@@ -5,10 +5,12 @@
     "start": "bun run src/index.ts",
     "docker:dev": "docker compose -f docker-compose.dev.yml up --build",
     "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",
-    "check": "biome check .",
-    "check:fix": "biome check --write .",
-    "lint": "biome lint .",
-    "format": "biome format --write ."
+    "biome:check": "biome check .",
+    "biome:fix": "biome check --write .",
+    "biome:lint": "biome lint .",
+    "biome:format": "biome format --write .",
+    "biome:migrate:check": "biome migrate",
+    "biome:migrate:fix": "biome migrate --write"
   },
   "dependencies": {
     "@hono/cli": "^0.1.11",
