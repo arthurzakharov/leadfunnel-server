@@ -7,7 +7,9 @@ import { ovmRoutes } from '@/modules/ovm/ovm.routes';
 import { stripeRoutes } from '@/modules/stripe/stripe.routes';
 import { msg, msgOk, msg404, msgServerError } from '@/helpers/responses';
 
-const app = new Hono();
+const app = new Hono({
+  strict: false
+});
 
 app.get('/health', msgOk('Server is running'));
 
