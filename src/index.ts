@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server';
-import app from './app';
-import { onSignalInterrupt, onSignalTerminate } from './helpers/server-signals';
+import app from '@/app';
+import { onSignalInterrupt, onSignalTerminate } from '@/helpers/server-signals';
 
 const server = serve(
   {
