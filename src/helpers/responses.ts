@@ -19,9 +19,11 @@ export const msg =
     );
   };
 
-export const msgOk = (message: MessageInput) => msg(message, StatusCodes.OK);
+export const msgOk = (message: MessageInput = 'OK') => msg(message, StatusCodes.OK);
 
-export const msg404 = (message: MessageInput) => msg(message, StatusCodes.NOT_FOUND);
+export const msg404 = (
+  message: MessageInput = (c) => `${c.req.method} ${c.req.path} does not exist`
+) => msg(message, StatusCodes.NOT_FOUND);
 
 export const msgServerError = (message: MessageInput = 'Internal Server Error') =>
   msg(message, StatusCodes.INTERNAL_SERVER_ERROR);

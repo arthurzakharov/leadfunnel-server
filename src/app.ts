@@ -14,9 +14,9 @@ const app = new Hono({
 
 app.use(logger());
 
-app.get('/health', msgOk('Server is running'));
+app.get('/health', msgOk('Server is up'));
 
-app.notFound(msg404((c) => `${c.req.method} ${c.req.path} does not exist`));
+app.notFound(msg404());
 
 app.onError((e, c) => {
   console.error(e);
