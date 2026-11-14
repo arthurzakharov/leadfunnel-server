@@ -8,7 +8,7 @@ import { stripeRoutes } from '@/modules/stripe/stripe.routes';
 import { msg, msgOk, msg404, msgServerError } from '@/helpers/responses';
 
 const app = new Hono({
-  strict: false
+  strict: false,
 });
 
 app.get('/health', msgOk('Server is running'));
@@ -17,7 +17,6 @@ app.notFound(msg404((c) => `${c.req.method} ${c.req.path} does not exist`));
 
 app.onError((e, c) => {
   console.error(e);
-
   return e instanceof HTTPException
     ? e.res || msg(e.message, e.status)(c)
     : msgServerError(e.message)(c);
