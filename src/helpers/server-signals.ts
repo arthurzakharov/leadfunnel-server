@@ -4,18 +4,18 @@ const shutdown = async (server: Server, signal: string) => {
 
   try {
     await server.stop();
-    console.log("Server closed successfully.");
+    console.log('Server closed successfully.');
     process.exit(0);
   } catch (err) {
-    console.error("Error during shutdown:", err);
+    console.error('Error during shutdown:', err);
     process.exit(1);
   }
 };
 
 export const onSignalInterrupt = (server: Server) => {
-  void shutdown(server, "SIGINT");
+  void shutdown(server, 'SIGINT');
 };
 
 export const onSignalTerminate = (server: Server) => {
-  void shutdown(server, "SIGTERM");
+  void shutdown(server, 'SIGTERM');
 };
