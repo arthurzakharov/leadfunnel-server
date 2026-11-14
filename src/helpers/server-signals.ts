@@ -1,18 +1,21 @@
-import type { ServerType } from '@hono/node-server';
+type Server = ReturnType<typeof Bun.serve>;
+const shutdown = async (server: Server, signal: string) => {
+  console.log(`Received ${signal}. Shutting down gracefully...`);
 
-export const onSignalInterrupt = (server: ServerType) => {
-  server.close();
-  console.log('Server closed 1');
-  process.exit(0);
+  try {
+    await server.stop();
+    console.log("Server closed successfully.");
+    process.exit(0);
+  } catch (err) {
+    console.error("Error during shutdown:", err);
+    process.exit(1);
+  }
 };
 
-export const onSignalTerminate = (server: ServerType) => {
-  server.close((err) => {
-    console.log('Server closed 2');
-    if (err) {
-      console.error(err);
-      process.exit(1);
-    }
-    process.exit(0);
-  });
+export const onSignalInterrupt = (server: Server) => {
+  void shutdown(server, "SIGINT");
+};
+
+export const onSignalTerminate = (server: Server) => {
+  void shutdown(server, "SIGTERM");
 };

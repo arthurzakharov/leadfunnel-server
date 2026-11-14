@@ -1,15 +1,13 @@
-import { serve } from '@hono/node-server';
 import app from '@/app';
-import { onSignalInterrupt, onSignalTerminate } from '@/helpers/server-signals';
 import { env } from '@/config/env';
+import { onSignalInterrupt, onSignalTerminate } from '@/helpers/server-signals';
 
-const server = serve(
-  {
-    fetch: app.fetch,
-    port: env.PORT,
-  },
-  (info) => console.log(`Server is running on http://localhost:${info.port}`)
-);
+const server = Bun.serve({
+  fetch: app.fetch,
+  port: env.PORT,
+});
+
+console.log(`Server is running on ${server.url}`);
 
 process.on('SIGINT', () => onSignalInterrupt(server));
 

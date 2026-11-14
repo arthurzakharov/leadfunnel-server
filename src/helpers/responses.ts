@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
-import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 
 type MessageInput = string | ((c: Context) => string);
 
