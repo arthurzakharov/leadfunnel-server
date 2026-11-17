@@ -69,8 +69,8 @@ export interface IustaCustomerStandardFields {
 export type IustaCustomerStandardFieldKeys = keyof IustaCustomerStandardFields;
 
 export interface IustaCustomField {
-  value: string;
-  intValue: number;
+  value: string | null;
+  intValue: number | null;
   referenceId: number;
   id: number;
   customFieldId: number;
@@ -78,16 +78,3 @@ export interface IustaCustomField {
 }
 
 export type IustaCustomFieldKeys = keyof IustaCustomField;
-
-export class IustaRequestError extends Error {
-  public readonly status: number;
-  public readonly responseBody: string;
-
-  constructor(status: number, responseBody: string, context?: string) {
-    const prefix = context ? `${context}: ` : '';
-    super(`${prefix}Request error: ${status} - ${responseBody}`);
-    this.name = 'IustaRequestError';
-    this.status = status;
-    this.responseBody = responseBody;
-  }
-}

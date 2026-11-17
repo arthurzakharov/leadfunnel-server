@@ -86,17 +86,6 @@ export class IustaClient {
 
   // --- Main entry point to deal with Iusta ---
 
-  private async resolveIdsByExternalId(externalId: string) {
-    const { caseId } = await this.findCaseIdByExternalId(externalId);
-
-    const { customerId } = await this.getCaseStandardFields(caseId, ['caseGroupId']);
-
-    return {
-      caseId,
-      customerId: customerId.toString(),
-    };
-  }
-
   private async findCaseIdByExternalId(externalId: string): Promise<FindCaseIdByExternalId> {
     const result = await this.get<IustaCustomField[]>(
       '/CustomFieldValues',
@@ -105,6 +94,10 @@ export class IustaClient {
           where: {
             customFieldId: IUSTA_FIELDS.EXTERNAL_ID.id,
             value: externalId,
+            referenceType: 'Case',
+          },
+          fields: {
+            referenceId: true,
           },
         },
       },
@@ -115,11 +108,24 @@ export class IustaClient {
       throw new IustaCaseNotFoundError(externalId);
     }
 
+    console.log(result);
+
     return {
       caseId: result
         .slice(0, 1)
         .map((c) => c.referenceId)
         .join(),
+    };
+  }
+
+  public async resolveIdsByExternalId(externalId: string) {
+    const { caseId } = await this.findCaseIdByExternalId(externalId);
+
+    const { customerId } = await this.getCaseStandardFields(caseId, ['customerId']);
+
+    return {
+      caseId,
+      customerId: String(customerId),
     };
   }
 
