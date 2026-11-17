@@ -2,7 +2,7 @@ import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import { env } from '@/config/env';
 import { createHttpClient } from '@/helpers/axios';
 import { IustaApiError, IustaCaseNotFoundError } from '@/modules/iusta/iusta.errors';
-import { IUSTA_FIELDS } from '@/modules/iusta/iusta.fields';
+import { IUSTA_CUSTOM_FIELD_IDS } from '@/modules/iusta/iusta.fields';
 import type {
   IustaCaseStandardFieldKeys,
   IustaCaseStandardFields,
@@ -93,7 +93,7 @@ export class IustaClient {
       {
         filter: {
           where: {
-            customFieldId: IUSTA_FIELDS.EXTERNAL_ID.id,
+            customFieldId: IUSTA_CUSTOM_FIELD_IDS.CASE_EXTERNAL_ID,
             value: externalId,
             referenceType: 'Case',
           },

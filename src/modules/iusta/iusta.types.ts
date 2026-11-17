@@ -1,11 +1,4 @@
 export type IustaFieldEntity = 'Case' | 'Customer';
-export type IustaFieldType = 'standard' | 'custom';
-
-export interface IustaFieldDescriptor {
-  readonly id: number | string;
-  readonly entity: IustaFieldEntity;
-  readonly type: IustaFieldType;
-}
 
 // --- Case Standard Fields ---
 
