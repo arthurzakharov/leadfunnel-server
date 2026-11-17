@@ -1,8 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
-import { env } from '@/config/env';
 import { createHttpClient } from '@/helpers/axios';
-import { IustaApiError, IustaCaseNotFoundError } from '@/modules/iusta/iusta.errors';
-import { IUSTA_CUSTOM_FIELD_IDS } from '@/modules/iusta/iusta.fields';
+import { IustaApiError } from '@/modules/iusta/iusta.errors';
 import type {
   IustaCaseStandardFieldKeys,
   IustaCaseStandardFields,
@@ -10,8 +8,13 @@ import type {
   IustaCustomerStandardFields,
   IustaCustomField,
   IustaCustomFieldKeys,
+  IustaSelected,
 } from '@/modules/iusta/iusta.types';
 
+/**
+ * Thin transport layer over the Iusta REST API: one method per upstream endpoint,
+ * no business rules. Domain workflows live in `IustaService`.
+ */
 export class IustaClient {
   private readonly http: AxiosInstance;
 
@@ -56,21 +59,19 @@ export class IustaClient {
     return this.request<T>({ method: 'PUT', url, data }, errorContext);
   }
 
-  private buildStandardFieldsParams(
-    standardFields: IustaCaseStandardFieldKeys[] | IustaCustomerStandardFieldKeys[]
-  ): Record<string, unknown> {
-    return standardFields.length >= 1
-      ? {
-          filter: {
-            fields: Object.fromEntries(standardFields.map((field) => [field, true])),
-          },
-        }
+  private toFieldsMap(fields: readonly string[]): Record<string, true> {
+    return Object.fromEntries(fields.map((field) => [field, true]));
+  }
+
+  private buildStandardFieldsParams(standardFields: readonly string[]): Record<string, unknown> {
+    return standardFields.length > 0
+      ? { filter: { fields: this.toFieldsMap(standardFields) } }
       : {};
   }
 
   private buildCustomFieldParams(
-    customFields: (number | string)[] = [],
-    fields: string[] = []
+    customFields: readonly number[] = [],
+    fields: readonly string[] = []
   ): Record<string, unknown> {
     const filter: Record<string, unknown> = {};
 
@@ -79,101 +80,77 @@ export class IustaClient {
     }
 
     if (fields.length > 0) {
-      filter.fields = Object.fromEntries(fields.map((field) => [field, true]));
+      filter.fields = this.toFieldsMap(fields);
     }
 
     return Object.keys(filter).length > 0 ? { filter } : {};
   }
 
-  // --- Main entry point to deal with Iusta ---
+  // --- Custom Field Values (cross-entity) ---
+  // Read methods are generic over the requested `fields`: passing ['customerId'] types the
+  // result as Pick<…, 'customerId'>; passing nothing types it as the full entity.
 
-  private async findCaseIdByExternalId(externalId: string) {
-    const result = await this.get<IustaCustomField[]>(
+  public async findCustomFieldValues<K extends IustaCustomFieldKeys = never>(
+    where: Record<string, unknown>,
+    fields: readonly K[] = [],
+    errorContext = 'Error querying Iusta custom field values'
+  ) {
+    const filter = fields.length > 0 ? { where, fields: this.toFieldsMap(fields) } : { where };
+
+    return this.get<IustaSelected<IustaCustomField, K>[]>(
       '/CustomFieldValues',
-      {
-        filter: {
-          where: {
-            customFieldId: IUSTA_CUSTOM_FIELD_IDS.CASE_EXTERNAL_ID,
-            value: externalId,
-            referenceType: 'Case',
-          },
-          fields: {
-            referenceId: true,
-          },
-        },
-      },
-      `Error finding Iusta case by externalId ${externalId}`
+      { filter },
+      errorContext
     );
-
-    if (!result || result.length === 0) {
-      throw new IustaCaseNotFoundError(externalId);
-    }
-
-    return {
-      caseId: String(result[0].referenceId),
-    };
-  }
-
-  public async resolveIdsByExternalId(externalId: string) {
-    const { caseId } = await this.findCaseIdByExternalId(externalId);
-
-    const { customerId } = await this.getCaseStandardFields(caseId, ['customerId']);
-
-    return {
-      caseId,
-      customerId: customerId != null ? String(customerId) : '',
-    };
   }
 
   // --- Case Read Methods ---
 
-  public async getCaseStandardFields(
+  public async getCaseStandardFields<K extends IustaCaseStandardFieldKeys = never>(
     caseId: string,
-    caseStandardFields: IustaCaseStandardFieldKeys[] = []
+    caseStandardFields: readonly K[] = []
   ) {
     const url = `/Cases/${encodeURIComponent(caseId)}`;
     const params = this.buildStandardFieldsParams(caseStandardFields);
     const error = `Error fetching Iusta case standard fields for caseId: ${caseId}`;
 
-    return this.get<IustaCaseStandardFields>(url, params, error);
+    return this.get<IustaSelected<IustaCaseStandardFields, K>>(url, params, error);
   }
 
-  public async getCaseCustomFields(
+  public async getCaseCustomFields<K extends IustaCustomFieldKeys = never>(
     caseId: string,
-    caseCustomFields: (number | string)[] = [],
-    fields: IustaCustomFieldKeys[] = []
+    caseCustomFields: readonly number[] = [],
+    fields: readonly K[] = []
   ) {
     const url = `/Cases/${encodeURIComponent(caseId)}/CustomFieldValues`;
     const params = this.buildCustomFieldParams(caseCustomFields, fields);
     const error = `Error fetching Iusta case custom fields for caseId: ${caseId}`;
 
-    return this.get<IustaCustomField[]>(url, params, error);
+    return this.get<IustaSelected<IustaCustomField, K>[]>(url, params, error);
   }
 
   // --- Customer Read Methods ---
 
-  public async getCustomerStandardFields(
+  public async getCustomerStandardFields<K extends IustaCustomerStandardFieldKeys = never>(
     customerId: string,
-    customerStandardFields: IustaCustomerStandardFieldKeys[] = []
+    customerStandardFields: readonly K[] = []
   ) {
     const url = `/Customers/${encodeURIComponent(customerId)}`;
     const params = this.buildStandardFieldsParams(customerStandardFields);
     const error = `Error fetching Iusta customer ${customerId}`;
 
-    return this.get<IustaCustomerStandardFields>(url, params, error);
+    return this.get<IustaSelected<IustaCustomerStandardFields, K>>(url, params, error);
   }
 
-  public async getCustomerCustomFields(
+  public async getCustomerCustomFields<K extends IustaCustomFieldKeys = never>(
     customerId: string,
-    customerCustomFields: (number | string)[] = [],
-    fields: IustaCustomFieldKeys[] = []
+    customerCustomFields: readonly number[] = [],
+    fields: readonly K[] = []
   ) {
     const url = `/Customers/${encodeURIComponent(customerId)}/CustomFieldValues`;
     const params = this.buildCustomFieldParams(customerCustomFields, fields);
     const error = `Error fetching Iusta customer ${customerId} custom field values`;
 
-    return this.get<IustaCustomField[]>(url, params, error);
+    return this.get<IustaSelected<IustaCustomField, K>[]>(url, params, error);
   }
 }
-
-export const iustaClient = new IustaClient(env.IUSTA_URL, env.IUSTA_TOKEN);

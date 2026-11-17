@@ -1,36 +1,38 @@
 import { z } from 'zod';
 import {
-  IUSTA_CASE_STANDARD_FIELD_KEYS,
-  IUSTA_CUSTOM_FIELD_KEYS,
-  IUSTA_CUSTOMER_STANDARD_FIELD_KEYS,
+  iustaCaseStandardFieldKeySchema,
+  iustaCustomerStandardFieldKeySchema,
+  iustaCustomFieldKeySchema,
 } from '@/modules/iusta/iusta.types';
 
-const createCsvEnumSchema = <const T extends readonly [string, ...string[]]>(allowedValues: T) =>
-  z
-    .string()
-    .optional()
-    .transform((val) =>
-      val
-        ? val
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : []
-    )
-    .pipe(z.array(z.enum(allowedValues)));
+const MAX_CSV_IDS = 100;
+
+const splitCsv = (val?: string) =>
+  val
+    ? val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+
+const createCsvEnumSchema = <E extends z.ZodEnum<Record<string, string>>>(allowedValues: E) =>
+  z.string().optional().transform(splitCsv).pipe(z.array(allowedValues));
 
 const csvIdsSchema = z
   .string()
   .optional()
-  .transform((val) =>
-    val
-      ? val
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((id) => (/^\d+$/.test(id) ? Number(id) : id))
-      : []
-  );
+  .transform(splitCsv)
+  .pipe(
+    z
+      .array(
+        z
+          .string()
+          .regex(/^\d{1,15}$/, { error: 'each id must be a positive integer' })
+          .transform(Number)
+      )
+      .max(MAX_CSV_IDS, { error: `at most ${MAX_CSV_IDS} ids are allowed` })
+  )
+  .transform((ids) => [...new Set(ids)]);
 
 const numericIdSchema = (name: string) =>
   z.string().regex(/^\d{1,18}$/, { error: `${name} must be a positive integer` });
@@ -48,14 +50,14 @@ export const customerIdParam = z.object({
 });
 
 export const caseStandardFieldsQuery = z.object({
-  fields: createCsvEnumSchema(IUSTA_CASE_STANDARD_FIELD_KEYS),
+  fields: createCsvEnumSchema(iustaCaseStandardFieldKeySchema),
 });
 
 export const customerStandardFieldsQuery = z.object({
-  fields: createCsvEnumSchema(IUSTA_CUSTOMER_STANDARD_FIELD_KEYS),
+  fields: createCsvEnumSchema(iustaCustomerStandardFieldKeySchema),
 });
 
 export const customFieldsQuery = z.object({
   ids: csvIdsSchema,
-  fields: createCsvEnumSchema(IUSTA_CUSTOM_FIELD_KEYS),
+  fields: createCsvEnumSchema(iustaCustomFieldKeySchema),
 });

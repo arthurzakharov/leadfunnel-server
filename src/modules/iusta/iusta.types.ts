@@ -1,137 +1,96 @@
-export type IustaFieldEntity = 'Case' | 'Customer';
+import { z } from 'zod';
+
+// Each Iusta entity is described once as a Zod schema; its TS type and its list of
+// selectable field keys are derived from it, so they can never drift apart.
+
+export const iustaFieldEntitySchema = z.enum(['Case', 'Customer']);
+
+export type IustaFieldEntity = z.infer<typeof iustaFieldEntitySchema>;
 
 // --- Case Standard Fields ---
 
-export const IUSTA_CASE_STANDARD_FIELD_KEYS = [
-  'status',
-  'number',
-  'name',
-  'private',
-  'closedAt',
-  'invoicingContactId',
-  'invoicingContactId2',
-  'invoicingContactId3',
-  'invoiceUuids',
-  'comment',
-  'id',
-  'customerId',
-  'assignedUserId',
-  'closedBy',
-  'createdAt',
-  'updatedAt',
-  'createdBy',
-  'updatedBy',
-  'permissionSetId',
-  'caseGroupId',
-] as const;
+export const iustaCaseStandardFieldsSchema = z.object({
+  status: z.number(),
+  number: z.string().nullable(),
+  name: z.string().nullable(),
+  private: z.boolean(),
+  closedAt: z.string().nullable(),
+  invoicingContactId: z.string().nullable(),
+  invoicingContactId2: z.string().nullable(),
+  invoicingContactId3: z.string().nullable(),
+  invoiceUuids: z.string().nullable(),
+  comment: z.string().nullable(),
+  id: z.number(),
+  customerId: z.number().nullable(),
+  assignedUserId: z.string().nullable(),
+  closedBy: z.string().nullable(),
+  createdAt: z.string().nullable(),
+  updatedAt: z.string().nullable(),
+  createdBy: z.number(),
+  updatedBy: z.number(),
+  permissionSetId: z.number(),
+  caseGroupId: z.number(),
+});
 
-export type IustaCaseStandardFieldKeys = (typeof IUSTA_CASE_STANDARD_FIELD_KEYS)[number];
-
-export interface IustaCaseStandardFields {
-  status: number;
-  number: string | null;
-  name: string | null;
-  private: boolean;
-  closedAt: string | null;
-  invoicingContactId: string | null;
-  invoicingContactId2: string | null;
-  invoicingContactId3: string | null;
-  invoiceUuids: string | null;
-  comment: string | null;
-  id: number;
-  customerId: number | null;
-  assignedUserId: string | null;
-  closedBy: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-  createdBy: number;
-  updatedBy: number;
-  permissionSetId: number;
-  caseGroupId: number;
-}
+export type IustaCaseStandardFields = z.infer<typeof iustaCaseStandardFieldsSchema>;
+export const iustaCaseStandardFieldKeySchema = iustaCaseStandardFieldsSchema.keyof();
+export type IustaCaseStandardFieldKeys = keyof IustaCaseStandardFields;
 
 // --- Customer Standard Fields ---
 
-export const IUSTA_CUSTOMER_STANDARD_FIELD_KEYS = [
-  'title',
-  'gender',
-  'entity',
-  'name',
-  'surname',
-  'company',
-  'dateOfBirth',
-  'streetAddress',
-  'streetNumber',
-  'zipCode',
-  'city',
-  'addressAdditional1',
-  'addressAdditional2',
-  'addressAdditional3',
-  'country',
-  'phoneNumber',
-  'mobileNumber',
-  'email',
-  'fax',
-  'iban',
-  'bic',
-  'id',
-  'createdAt',
-  'updatedAt',
-  'createdBy',
-  'updatedBy',
-  'permissionSetId',
-] as const;
+export const iustaCustomerStandardFieldsSchema = z.object({
+  title: z.string().nullable(),
+  gender: z.string().nullable(),
+  entity: z.string().nullable(),
+  name: z.string().nullable(),
+  surname: z.string().nullable(),
+  company: z.string().nullable(),
+  dateOfBirth: z.string().nullable(),
+  streetAddress: z.string().nullable(),
+  streetNumber: z.string().nullable(),
+  zipCode: z.string().nullable(),
+  city: z.string().nullable(),
+  addressAdditional1: z.string().nullable(),
+  addressAdditional2: z.string().nullable(),
+  addressAdditional3: z.string().nullable(),
+  country: z.string().nullable(),
+  phoneNumber: z.string().nullable(),
+  mobileNumber: z.string().nullable(),
+  email: z.string().nullable(),
+  fax: z.string().nullable(),
+  iban: z.string().nullable(),
+  bic: z.string().nullable(),
+  id: z.number(),
+  createdAt: z.string().nullable(),
+  updatedAt: z.string().nullable(),
+  createdBy: z.number(),
+  updatedBy: z.number(),
+  permissionSetId: z.number(),
+});
 
-export type IustaCustomerStandardFieldKeys = (typeof IUSTA_CUSTOMER_STANDARD_FIELD_KEYS)[number];
-
-export interface IustaCustomerStandardFields {
-  title: string | null;
-  gender: string | null;
-  entity: string | null;
-  name: string | null;
-  surname: string | null;
-  company: string | null;
-  dateOfBirth: string | null;
-  streetAddress: string | null;
-  streetNumber: string | null;
-  zipCode: string | null;
-  city: string | null;
-  addressAdditional1: string | null;
-  addressAdditional2: string | null;
-  addressAdditional3: string | null;
-  country: string | null;
-  phoneNumber: string | null;
-  mobileNumber: string | null;
-  email: string | null;
-  fax: string | null;
-  iban: string | null;
-  bic: string | null;
-  id: number;
-  createdAt: string | null;
-  updatedAt: string | null;
-  createdBy: number;
-  updatedBy: number;
-  permissionSetId: number;
-}
+export type IustaCustomerStandardFields = z.infer<typeof iustaCustomerStandardFieldsSchema>;
+export const iustaCustomerStandardFieldKeySchema = iustaCustomerStandardFieldsSchema.keyof();
+export type IustaCustomerStandardFieldKeys = keyof IustaCustomerStandardFields;
 
 // --- Custom Fields ---
 
-export const IUSTA_CUSTOM_FIELD_KEYS = [
-  'value',
-  'intValue',
-  'referenceId',
-  'id',
-  'customFieldId',
-  'referenceType',
-] as const;
+export const iustaCustomFieldSchema = z.object({
+  value: z.string().nullable(),
+  intValue: z.number().nullable(),
+  referenceId: z.number(),
+  id: z.number(),
+  customFieldId: z.number(),
+  referenceType: iustaFieldEntitySchema,
+});
 
-export type IustaCustomFieldKeys = (typeof IUSTA_CUSTOM_FIELD_KEYS)[number];
+export type IustaCustomField = z.infer<typeof iustaCustomFieldSchema>;
+export const iustaCustomFieldKeySchema = iustaCustomFieldSchema.keyof();
+export type IustaCustomFieldKeys = keyof IustaCustomField;
 
-export interface IustaCustomField {
-  value: string | null;
-  intValue: number | null;
-  referenceId: number;
-  id: number;
-  customFieldId: number;
-  referenceType: IustaFieldEntity;
-}
+// --- Field selection helpers ---
+
+/**
+ * Shape returned by Iusta when only `K` fields are requested via `filter.fields`.
+ * No fields requested (`K = never`) means Iusta returns the full entity.
+ */
+export type IustaSelected<T, K extends keyof T> = [K] extends [never] ? T : Pick<T, K>;

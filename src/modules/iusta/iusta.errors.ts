@@ -7,6 +7,15 @@ export class IustaCaseNotFoundError extends NotFoundError {
   }
 }
 
+export class IustaDuplicateCaseError extends AppError {
+  constructor(
+    public readonly externalId: string,
+    public readonly caseIds: string[]
+  ) {
+    super(409, `Multiple Iusta cases found for externalId ${externalId}`);
+  }
+}
+
 const PASS_THROUGH_STATUSES = new Set<ContentfulStatusCode>([404, 409, 422]);
 
 const toClientStatus = (upstreamStatus: number): ContentfulStatusCode =>
