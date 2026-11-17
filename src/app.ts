@@ -20,9 +20,7 @@ app.notFound(msg404());
 
 app.onError((e, c) => {
   console.error(e);
-  return e instanceof HTTPException
-    ? e.res || msg(e.message, e.status)(c)
-    : msgServerError(e.message)(c);
+  return e instanceof HTTPException ? e.res || msg(e.message, e.status)(c) : msgServerError()(c);
 });
 
 const apiV1 = app

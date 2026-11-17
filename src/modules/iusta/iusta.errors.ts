@@ -10,10 +10,10 @@ export class IustaCaseNotFoundError extends NotFoundError {
 export class IustaApiError extends AppError {
   public readonly upstreamStatus: number;
   public readonly responseBody: string;
+  public readonly context?: string;
 
   constructor(upstreamStatus: number, responseBody: string, context?: string) {
-    const prefix = context ? `${context}: ` : '';
-    const message = `${prefix}Request error: ${upstreamStatus} - ${responseBody}`;
+    const message = `${context ?? 'Iusta request failed'} (upstream status ${upstreamStatus})`;
     const httpStatus: ContentfulStatusCode =
       upstreamStatus >= 400 && upstreamStatus < 500
         ? (upstreamStatus as ContentfulStatusCode)
@@ -22,6 +22,7 @@ export class IustaApiError extends AppError {
     super(httpStatus, message);
     this.upstreamStatus = upstreamStatus;
     this.responseBody = responseBody;
+    this.context = context;
   }
 
   get isDuplicateEntry(): boolean {
