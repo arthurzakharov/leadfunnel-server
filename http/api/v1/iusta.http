@@ -1,8 +1,27 @@
 ### GET /api/v1/braze
 GET {{baseUrl}}/{{version}}/iusta
 
-### GET by external ID
-GET {{baseUrl}}/{{version}}/iusta/case-by-external-id/7ed5c724-d868-416f-99da-5dbaf7215a203
+### GET caseId by externalId
+GET {{baseUrl}}/{{version}}/iusta/cases/by-external-id/{{externalId}}
 
-### GET case standard fields by referenceId
-GET {{baseUrl}}/{{version}}/iusta/case-standard-fields-by-case-id/1104638
+### CASE
+
+### GET case standard fields by caseId
+GET {{baseUrl}}/{{version}}/iusta/cases/{{caseId}}/standard-fields
+    ?fields=id,customerId,createdAt,updatedAt
+
+### GET case custom fields by caseId
+GET {{baseUrl}}/{{version}}/iusta/cases/{{caseId}}/custom-fields
+    ?ids=23701,23683,23702
+    &fields=customFieldId,value
+
+### CUSTOMER
+
+### GET customer standard fields by customerId
+GET {{baseUrl}}/{{version}}/iusta/customers/{{customerId}}/standard-fields
+    ?fields=name,surname,id,phoneNumber
+
+### GET customer custom fields by customerId
+GET {{baseUrl}}/{{version}}/iusta/customers/{{customerId}}/custom-fields
+    ?ids=24535
+    &fields=customFieldId,value
