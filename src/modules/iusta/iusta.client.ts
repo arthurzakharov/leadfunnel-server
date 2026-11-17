@@ -5,11 +5,12 @@ import { IustaApiError, IustaCaseNotFoundError } from '@/modules/iusta/iusta.err
 import { IUSTA_FIELDS } from '@/modules/iusta/iusta.fields';
 import type {
   FindCaseIdByExternalId,
-  IustaCaseLookupItem,
+  IustaCaseStandardFieldKeys,
   IustaCaseStandardFields,
+  IustaCustomerStandardFieldKeys,
   IustaCustomerStandardFields,
-  IustaCustomFieldValueItem,
-  IustaResolvedIds,
+  IustaCustomField,
+  IustaCustomFieldKeys,
 } from '@/modules/iusta/iusta.types';
 
 export class IustaClient {
@@ -54,23 +55,28 @@ export class IustaClient {
     return this.request<T>({ method: 'PUT', url, data }, errorContext);
   }
 
-  private buildFieldsProjectionParams(fields: string[]): Record<string, unknown> {
-    if (fields.length === 0) {
-      return {};
-    }
-    const projection = Object.fromEntries(fields.map((field) => [field, true]));
-    return { filter: { fields: projection } };
+  private buildStandardFieldsParams(
+    standardFields: IustaCaseStandardFieldKeys[] | IustaCustomerStandardFieldKeys[]
+  ): Record<string, unknown> {
+    return standardFields.length >= 1
+      ? {
+          filter: {
+            fields: Object.fromEntries(standardFields.map((field) => [field, true])),
+          },
+        }
+      : {};
   }
 
-  private buildCustomFieldValuesParams(
-    customFieldIds: Array<number | string> = [],
+  private buildCustomFieldParams(
+    customFields: Array<number | string> = [],
     fields: string[] = []
   ): Record<string, unknown> {
     const filter: Record<string, unknown> = {};
 
-    if (customFieldIds.length > 0) {
-      filter.where = { customFieldId: { inq: customFieldIds } };
+    if (customFields.length > 0) {
+      filter.where = { customFieldId: { inq: customFields } };
     }
+
     if (fields.length > 0) {
       filter.fields = Object.fromEntries(fields.map((field) => [field, true]));
     }
@@ -78,10 +84,21 @@ export class IustaClient {
     return Object.keys(filter).length > 0 ? { filter } : {};
   }
 
-  // --- Case Read Methods ---
+  // --- Main entry point to deal with Iusta ---
 
-  async findCaseIdByExternalId(externalId: string): Promise<FindCaseIdByExternalId> {
-    const result = await this.get<IustaCaseLookupItem[]>(
+  private async resolveIdsByExternalId(externalId: string) {
+    const { caseId } = await this.findCaseIdByExternalId(externalId);
+
+    const { customerId } = await this.getCaseStandardFields(caseId, ['caseGroupId']);
+
+    return {
+      caseId,
+      customerId: customerId.toString(),
+    };
+  }
+
+  private async findCaseIdByExternalId(externalId: string): Promise<FindCaseIdByExternalId> {
+    const result = await this.get<IustaCustomField[]>(
       '/CustomFieldValues',
       {
         filter: {
@@ -106,80 +123,54 @@ export class IustaClient {
     };
   }
 
-  async getCaseStandardFieldValues(
-    caseId: number | string,
-    fields: string[] = []
-  ): Promise<IustaCaseStandardFields> {
-    return this.get<IustaCaseStandardFields>(
-      `/Cases/${caseId}`,
-      this.buildFieldsProjectionParams(fields),
-      `Error fetching Iusta case ${caseId}`
-    );
+  // --- Case Read Methods ---
+
+  public async getCaseStandardFields(
+    caseId: string,
+    caseStandardFields: IustaCaseStandardFieldKeys[] = []
+  ) {
+    const url = `/Cases/${caseId}`;
+    const params = this.buildStandardFieldsParams(caseStandardFields);
+    const error = `Error fetching Iusta case standard fields for caseId: ${caseId}`;
+
+    return this.get<IustaCaseStandardFields>(url, params, error);
   }
 
-  async getCaseCustomFieldValues(
-    caseId: number | string,
-    customFieldIds: Array<number | string> = [],
-    fields: string[] = []
-  ): Promise<IustaCustomFieldValueItem[]> {
-    return this.get<IustaCustomFieldValueItem[]>(
-      `/Cases/${caseId}/CustomFieldValues`,
-      this.buildCustomFieldValuesParams(customFieldIds, fields),
-      `Error fetching Iusta case ${caseId} custom field values`
-    );
+  public async getCaseCustomFields(
+    caseId: string,
+    caseCustomFields: Array<number | string> = [],
+    fields: IustaCustomFieldKeys[] = []
+  ) {
+    const url = `/Cases/${caseId}/CustomFieldValues`;
+    const params = this.buildCustomFieldParams(caseCustomFields, fields);
+    const error = `Error fetching Iusta case custom fields for caseId: ${caseId}`;
+
+    return this.get<IustaCustomField[]>(url, params, error);
   }
 
   // --- Customer Read Methods ---
 
-  async getCustomerStandardFieldValues(
-    customerId: number | string,
-    fields: string[] = []
-  ): Promise<IustaCustomerStandardFields> {
-    return this.get<IustaCustomerStandardFields>(
-      `/Customers/${customerId}`,
-      this.buildFieldsProjectionParams(fields),
-      `Error fetching Iusta customer ${customerId}`
-    );
+  public async getCustomerStandardFields(
+    customerId: string,
+    customerStandardFields: IustaCustomerStandardFieldKeys[] = []
+  ) {
+    const url = `/Customers/${customerId}`;
+    const params = this.buildStandardFieldsParams(customerStandardFields);
+    const error = `Error fetching Iusta customer ${customerId}`;
+
+    return this.get<IustaCustomerStandardFields>(url, params, error);
   }
 
-  async getCustomerCustomFieldValues(
-    customerId: number | string,
-    customFieldIds: Array<number | string> = [],
-    fields: string[] = []
-  ): Promise<IustaCustomFieldValueItem[]> {
-    return this.get<IustaCustomFieldValueItem[]>(
-      `/Customers/${customerId}/CustomFieldValues`,
-      this.buildCustomFieldValuesParams(customFieldIds, fields),
-      `Error fetching Iusta customer ${customerId} custom field values`
-    );
-  }
+  public async getCustomerCustomFields(
+    customerId: string,
+    customerCustomFields: Array<number | string> = [],
+    fields: IustaCustomFieldKeys[] = []
+  ) {
+    const url = `/Customers/${customerId}/CustomFieldValues`;
+    const params = this.buildCustomFieldParams(customerCustomFields, fields);
+    const error = `Error fetching Iusta customer ${customerId} custom field values`;
 
-  async getCustomerCustomFieldValue(
-    customerId: number | string,
-    fk: number | string
-  ): Promise<IustaCustomFieldValueItem> {
-    return this.get<IustaCustomFieldValueItem>(
-      `/Customers/${customerId}/CustomFieldValues/${fk}`,
-      undefined,
-      `Error fetching Iusta customer ${customerId} custom field value ${fk}`
-    );
-  }
-
-  // --- Helpers ---
-
-  async resolveIdsByExternalId(externalId: string): Promise<IustaResolvedIds> {
-    const { caseId } = await this.findCaseIdByExternalId(externalId);
-
-    if (caseId === undefined || caseId === null) {
-      throw new IustaCaseNotFoundError(externalId);
-    }
-
-    const caseData = await this.getCaseStandardFieldValues(caseId, ['customerId']);
-
-    return {
-      caseId,
-      customerId: caseData.customerId ?? null,
-    };
+    return this.get<IustaCustomField[]>(url, params, error);
   }
 }
 

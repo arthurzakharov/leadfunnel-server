@@ -11,53 +11,73 @@ export interface FindCaseIdByExternalId {
   caseId: string;
 }
 
-export interface IustaCaseLookupItem {
+export interface IustaCaseStandardFields {
+  status: number;
+  number: string | null;
+  name: string | null;
+  private: boolean;
+  closedAt: string | null;
+  invoicingContactId: string | null;
+  invoicingContactId2: string | null;
+  invoicingContactId3: string | null;
+  invoiceUuids: string | null;
+  comment: string | null;
+  id: number;
+  customerId: number;
+  assignedUserId: string | null;
+  closedBy: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  createdBy: number;
+  updatedBy: number;
+  permissionSetId: number;
+  caseGroupId: number;
+}
+
+export type IustaCaseStandardFieldKeys = keyof IustaCaseStandardFields;
+
+export interface IustaCustomerStandardFields {
+  title: string | null;
+  gender: string | null;
+  entity: string | null;
+  name: string | null;
+  surname: string | null;
+  company: string | null;
+  dateOfBirth: string | null;
+  streetAddress: string | null;
+  streetNumber: string | null;
+  zipCode: string | null;
+  city: string | null;
+  addressAdditional1: string | null;
+  addressAdditional2: string | null;
+  addressAdditional3: string | null;
+  country: string | null;
+  phoneNumber: string | null;
+  mobileNumber: string | null;
+  email: string | null;
+  fax: string | null;
+  iban: string | null;
+  bic: string | null;
+  id: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+  createdBy: number;
+  updatedBy: number;
+  permissionSetId: number;
+}
+
+export type IustaCustomerStandardFieldKeys = keyof IustaCustomerStandardFields;
+
+export interface IustaCustomField {
   value: string;
-  intValue: number | string;
-  referenceId: number | string;
-  id: number | string;
-  customFieldId: number | string;
-  referenceType: string;
-}
-
-export interface IustaCaseStandardFields extends Record<string, unknown> {
-  id?: number | string;
-  number?: string;
-  customerId?: number | string;
-  status?: string;
-  name?: string;
-}
-
-export interface IustaCustomerStandardFields extends Record<string, unknown> {
-  id?: number | string;
-  title?: string;
-  gender?: string;
-  name?: string;
-  surname?: string;
-  company?: string;
-  dateOfBirth?: string;
-  streetAddress?: string;
-  streetNumber?: string;
-  zipCode?: string;
-  city?: string;
-  country?: string;
-  phoneNumber?: string;
-  mobileNumber?: string;
-  email?: string;
-}
-
-export interface IustaCustomFieldValueItem {
-  id?: number | string;
+  intValue: number;
+  referenceId: number;
+  id: number;
   customFieldId: number;
-  value: string | null;
-  referenceId?: number | string;
-  referenceType?: IustaFieldEntity;
+  referenceType: IustaFieldEntity;
 }
 
-export interface IustaResolvedIds {
-  caseId: number | string;
-  customerId: number | string | null;
-}
+export type IustaCustomFieldKeys = keyof IustaCustomField;
 
 export class IustaRequestError extends Error {
   public readonly status: number;

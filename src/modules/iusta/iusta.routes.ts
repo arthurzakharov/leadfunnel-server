@@ -1,16 +1,32 @@
 import { Hono } from 'hono';
-import { msgOk } from '@/helpers/responses';
 import { iustaClient } from '@/modules/iusta/iusta.client';
 
 export const iustaRoutes = new Hono();
 
 iustaRoutes
-  .get('/', msgOk('iusta'))
-  .get('/case-by-external-id/:externalId', async (c) => {
-    const response = await iustaClient.findCaseIdByExternalId(c.req.param().externalId);
+  // Customer
+  .get('/customer/standard-fields/:customerId', async (c) => {
+    const { customerId } = c.req.param();
+    const response = await iustaClient.getCustomerStandardFields(customerId);
+
     return c.json(response);
   })
-  .get('/case-standard-fields-by-case-id/:caseID', async (c) => {
-    const response = await iustaClient.getCaseStandardFieldValues(c.req.param().caseID);
+  .get('/customer/custom-fields/:customerId', async (c) => {
+    const { customerId } = c.req.param();
+    const response = await iustaClient.getCustomerCustomFields(customerId);
+
+    return c.json(response);
+  })
+  // Case
+  .get('/case/standard-fields/:caseId', async (c) => {
+    const { caseId } = c.req.param();
+    const response = await iustaClient.getCaseStandardFields(caseId);
+
+    return c.json(response);
+  })
+  .get('/case/custom-fields/:caseId', async (c) => {
+    const { caseId } = c.req.param();
+    const response = await iustaClient.getCaseCustomFields(caseId);
+
     return c.json(response);
   });
