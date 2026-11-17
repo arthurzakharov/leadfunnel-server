@@ -7,9 +7,32 @@ export interface IustaFieldDescriptor {
   readonly type: IustaFieldType;
 }
 
-export interface FindCaseIdByExternalId {
-  caseId: string;
-}
+// --- Case Standard Fields ---
+
+export const IUSTA_CASE_STANDARD_FIELD_KEYS = [
+  'status',
+  'number',
+  'name',
+  'private',
+  'closedAt',
+  'invoicingContactId',
+  'invoicingContactId2',
+  'invoicingContactId3',
+  'invoiceUuids',
+  'comment',
+  'id',
+  'customerId',
+  'assignedUserId',
+  'closedBy',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'updatedBy',
+  'permissionSetId',
+  'caseGroupId',
+] as const;
+
+export type IustaCaseStandardFieldKeys = (typeof IUSTA_CASE_STANDARD_FIELD_KEYS)[number];
 
 export interface IustaCaseStandardFields {
   status: number;
@@ -23,7 +46,7 @@ export interface IustaCaseStandardFields {
   invoiceUuids: string | null;
   comment: string | null;
   id: number;
-  customerId: number;
+  customerId: number | null;
   assignedUserId: string | null;
   closedBy: string | null;
   createdAt: string | null;
@@ -34,7 +57,39 @@ export interface IustaCaseStandardFields {
   caseGroupId: number;
 }
 
-export type IustaCaseStandardFieldKeys = keyof IustaCaseStandardFields;
+// --- Customer Standard Fields ---
+
+export const IUSTA_CUSTOMER_STANDARD_FIELD_KEYS = [
+  'title',
+  'gender',
+  'entity',
+  'name',
+  'surname',
+  'company',
+  'dateOfBirth',
+  'streetAddress',
+  'streetNumber',
+  'zipCode',
+  'city',
+  'addressAdditional1',
+  'addressAdditional2',
+  'addressAdditional3',
+  'country',
+  'phoneNumber',
+  'mobileNumber',
+  'email',
+  'fax',
+  'iban',
+  'bic',
+  'id',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'updatedBy',
+  'permissionSetId',
+] as const;
+
+export type IustaCustomerStandardFieldKeys = (typeof IUSTA_CUSTOMER_STANDARD_FIELD_KEYS)[number];
 
 export interface IustaCustomerStandardFields {
   title: string | null;
@@ -66,7 +121,18 @@ export interface IustaCustomerStandardFields {
   permissionSetId: number;
 }
 
-export type IustaCustomerStandardFieldKeys = keyof IustaCustomerStandardFields;
+// --- Custom Fields ---
+
+export const IUSTA_CUSTOM_FIELD_KEYS = [
+  'value',
+  'intValue',
+  'referenceId',
+  'id',
+  'customFieldId',
+  'referenceType',
+] as const;
+
+export type IustaCustomFieldKeys = (typeof IUSTA_CUSTOM_FIELD_KEYS)[number];
 
 export interface IustaCustomField {
   value: string | null;
@@ -76,5 +142,3 @@ export interface IustaCustomField {
   customFieldId: number;
   referenceType: IustaFieldEntity;
 }
-
-export type IustaCustomFieldKeys = keyof IustaCustomField;

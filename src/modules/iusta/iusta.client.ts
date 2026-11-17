@@ -4,7 +4,6 @@ import { createHttpClient } from '@/helpers/axios';
 import { IustaApiError, IustaCaseNotFoundError } from '@/modules/iusta/iusta.errors';
 import { IUSTA_FIELDS } from '@/modules/iusta/iusta.fields';
 import type {
-  FindCaseIdByExternalId,
   IustaCaseStandardFieldKeys,
   IustaCaseStandardFields,
   IustaCustomerStandardFieldKeys,
@@ -19,6 +18,8 @@ export class IustaClient {
   constructor(apiUrl: string, apiToken: string) {
     this.http = createHttpClient(apiUrl, { authorization: apiToken });
   }
+
+  // --- Requests helpers ---
 
   private async request<T = unknown>(
     config: AxiosRequestConfig,
@@ -86,7 +87,7 @@ export class IustaClient {
 
   // --- Main entry point to deal with Iusta ---
 
-  private async findCaseIdByExternalId(externalId: string): Promise<FindCaseIdByExternalId> {
+  private async findCaseIdByExternalId(externalId: string) {
     const result = await this.get<IustaCustomField[]>(
       '/CustomFieldValues',
       {
@@ -108,13 +109,8 @@ export class IustaClient {
       throw new IustaCaseNotFoundError(externalId);
     }
 
-    console.log(result);
-
     return {
-      caseId: result
-        .slice(0, 1)
-        .map((c) => c.referenceId)
-        .join(),
+      caseId: String(result[0].referenceId),
     };
   }
 
@@ -125,7 +121,7 @@ export class IustaClient {
 
     return {
       caseId,
-      customerId: String(customerId),
+      customerId: customerId != null ? String(customerId) : '',
     };
   }
 

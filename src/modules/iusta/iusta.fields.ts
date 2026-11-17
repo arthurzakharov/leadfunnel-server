@@ -1,4 +1,4 @@
-import type { IustaFieldDescriptor } from './iusta.types';
+import type { IustaFieldDescriptor } from '@/modules/iusta/iusta.types';
 
 const caseCustom = (id: number): IustaFieldDescriptor => ({
   id,

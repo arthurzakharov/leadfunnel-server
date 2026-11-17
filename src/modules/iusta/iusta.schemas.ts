@@ -1,16 +1,23 @@
 import { z } from 'zod';
+import {
+  IUSTA_CASE_STANDARD_FIELD_KEYS,
+  IUSTA_CUSTOM_FIELD_KEYS,
+  IUSTA_CUSTOMER_STANDARD_FIELD_KEYS,
+} from '@/modules/iusta/iusta.types';
 
-const csvStringsSchema = z
-  .string()
-  .optional()
-  .transform((val) =>
-    val
-      ? val
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : []
-  );
+const createCsvEnumSchema = <const T extends readonly [string, ...string[]]>(allowedValues: T) =>
+  z
+    .string()
+    .optional()
+    .transform((val) =>
+      val
+        ? val
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : []
+    )
+    .pipe(z.array(z.enum(allowedValues)));
 
 const csvIdsSchema = z
   .string()
@@ -25,11 +32,15 @@ const csvIdsSchema = z
       : []
   );
 
-export const standardFieldsQuery = z.object({
-  fields: csvStringsSchema,
+export const caseStandardFieldsQuery = z.object({
+  fields: createCsvEnumSchema(IUSTA_CASE_STANDARD_FIELD_KEYS),
+});
+
+export const customerStandardFieldsQuery = z.object({
+  fields: createCsvEnumSchema(IUSTA_CUSTOMER_STANDARD_FIELD_KEYS),
 });
 
 export const customFieldsQuery = z.object({
   ids: csvIdsSchema,
-  fields: csvStringsSchema,
+  fields: createCsvEnumSchema(IUSTA_CUSTOM_FIELD_KEYS),
 });
