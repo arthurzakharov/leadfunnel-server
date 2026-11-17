@@ -69,7 +69,7 @@ export class IustaClient {
   }
 
   private buildCustomFieldParams(
-    customFields: Array<number | string> = [],
+    customFields: (number | string)[] = [],
     fields: string[] = []
   ): Record<string, unknown> {
     const filter: Record<string, unknown> = {};
@@ -140,7 +140,7 @@ export class IustaClient {
 
   public async getCaseCustomFields(
     caseId: string,
-    caseCustomFields: Array<number | string> = [],
+    caseCustomFields: (number | string)[] = [],
     fields: IustaCustomFieldKeys[] = []
   ) {
     const url = `/Cases/${caseId}/CustomFieldValues`;
@@ -165,7 +165,7 @@ export class IustaClient {
 
   public async getCustomerCustomFields(
     customerId: string,
-    customerCustomFields: Array<number | string> = [],
+    customerCustomFields: (number | string)[] = [],
     fields: IustaCustomFieldKeys[] = []
   ) {
     const url = `/Customers/${customerId}/CustomFieldValues`;
