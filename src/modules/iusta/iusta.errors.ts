@@ -7,6 +7,13 @@ export class IustaCaseNotFoundError extends NotFoundError {
   }
 }
 
+const PASS_THROUGH_STATUSES = new Set<ContentfulStatusCode>([404, 409, 422]);
+
+const toClientStatus = (upstreamStatus: number): ContentfulStatusCode =>
+  PASS_THROUGH_STATUSES.has(upstreamStatus as ContentfulStatusCode)
+    ? (upstreamStatus as ContentfulStatusCode)
+    : 502;
+
 export class IustaApiError extends AppError {
   public readonly upstreamStatus: number;
   public readonly responseBody: string;
@@ -14,12 +21,8 @@ export class IustaApiError extends AppError {
 
   constructor(upstreamStatus: number, responseBody: string, context?: string) {
     const message = `${context ?? 'Iusta request failed'} (upstream status ${upstreamStatus})`;
-    const httpStatus: ContentfulStatusCode =
-      upstreamStatus >= 400 && upstreamStatus < 500
-        ? (upstreamStatus as ContentfulStatusCode)
-        : 502;
 
-    super(httpStatus, message);
+    super(toClientStatus(upstreamStatus), message);
     this.upstreamStatus = upstreamStatus;
     this.responseBody = responseBody;
     this.context = context;
