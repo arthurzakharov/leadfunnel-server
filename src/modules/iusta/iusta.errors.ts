@@ -1,5 +1,6 @@
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { AppError, NotFoundError } from '@/helpers/errors';
+import { redactForLog } from '@/helpers/redact';
 
 export class IustaCaseNotFoundError extends NotFoundError {
   constructor(public readonly externalId: string) {
@@ -25,16 +26,25 @@ const toClientStatus = (upstreamStatus: number): ContentfulStatusCode =>
 
 export class IustaApiError extends AppError {
   public readonly upstreamStatus: number;
-  public readonly responseBody: string;
   public readonly context?: string;
+  /** Redacted, truncated body: the only form of it that is printed when the error is logged. */
+  public readonly responseBodyPreview: string;
+  // ES private field: invisible to console.log/console.error, so raw PII never reaches logs.
+  readonly #responseBody: string;
 
   constructor(upstreamStatus: number, responseBody: string, context?: string) {
     const message = `${context ?? 'Iusta request failed'} (upstream status ${upstreamStatus})`;
 
     super(toClientStatus(upstreamStatus), message);
     this.upstreamStatus = upstreamStatus;
-    this.responseBody = responseBody;
     this.context = context;
+    this.#responseBody = responseBody;
+    this.responseBodyPreview = redactForLog(responseBody);
+  }
+
+  /** Raw upstream body, for programmatic checks only. Never log it. */
+  get responseBody(): string {
+    return this.#responseBody;
   }
 
   get isDuplicateEntry(): boolean {

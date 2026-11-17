@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import { logger } from 'hono/logger';
 import { env } from '@/config/env';
-import { msg, msg404, msgOk, msgServerError } from '@/helpers/responses';
+import { errorHandler } from '@/helpers/error-handler';
+import { msg404, msgOk } from '@/helpers/responses';
 import { brazeRoutes } from '@/modules/braze/braze.routes';
 import { IustaClient } from '@/modules/iusta/iusta.client';
 import { createIustaRoutes } from '@/modules/iusta/iusta.routes';
@@ -24,10 +24,7 @@ app.get('/health', msgOk('Server is up'));
 
 app.notFound(msg404());
 
-app.onError((e, c) => {
-  console.error(e);
-  return e instanceof HTTPException ? e.res || msg(e.message, e.status)(c) : msgServerError()(c);
-});
+app.onError(errorHandler);
 
 const apiV1 = app
   .basePath('/api/v1')

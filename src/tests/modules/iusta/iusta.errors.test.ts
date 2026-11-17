@@ -22,6 +22,24 @@ describe('IustaApiError', () => {
     expect(error.context).toBe('Error fetching case 1');
   });
 
+  test('when logged, only a redacted preview of the body is printed', () => {
+    // Built at runtime: Bun prints the source lines around `new Error`, so a literal here
+    // would show up in the output and hide what we actually want to check.
+    const email = ['jane', 'example.com'].join('@');
+    const body = JSON.stringify({ error: { message: 'ER_DUP_ENTRY', email } });
+    const error = new IustaApiError(500, body);
+
+    expect(error.responseBody).toBe(body);
+    expect(error.responseBodyPreview).toBe(
+      '{"error":{"message":"ER_DUP_ENTRY","email":"[REDACTED]"}}'
+    );
+
+    // Bun.inspect is what console.log / console.error use to print objects.
+    const printed = Bun.inspect(error);
+    expect(printed).toContain('responseBodyPreview');
+    expect(printed).not.toContain(email);
+  });
+
   test('uses a generic message without context', () => {
     expect(new IustaApiError(500, 'boom').message).toBe(
       'Iusta request failed (upstream status 500)'
