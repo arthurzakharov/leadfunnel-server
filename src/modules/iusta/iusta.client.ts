@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import { createHttpClient } from '@/helpers/axios';
-import { IustaApiError } from '@/modules/iusta/iusta.errors';
+import { IustaApiError, IustaNetworkError } from '@/modules/iusta/iusta.errors';
 import type {
   IustaCaseStandardFieldKeys,
   IustaCaseStandardFields,
@@ -11,15 +11,23 @@ import type {
   IustaSelected,
 } from '@/modules/iusta/iusta.types';
 
-/**
- * Thin transport layer over the Iusta REST API: one method per upstream endpoint,
- * no business rules. Domain workflows live in `IustaService`.
- */
+export interface IustaClientOptions {
+  retries?: number;
+  retryBaseDelayMs?: number;
+  timeoutMs?: number;
+}
+
 export class IustaClient {
   private readonly http: AxiosInstance;
+  private readonly retries: number;
+  private readonly retryBaseDelayMs: number;
 
-  constructor(apiUrl: string, apiToken: string) {
-    this.http = createHttpClient(apiUrl, { authorization: apiToken });
+  constructor(apiUrl: string, apiToken: string, options: IustaClientOptions = {}) {
+    const { retries = 2, retryBaseDelayMs = 200, timeoutMs = 15_000 } = options;
+
+    this.http = createHttpClient(apiUrl, { authorization: apiToken }, timeoutMs);
+    this.retries = retries;
+    this.retryBaseDelayMs = retryBaseDelayMs;
   }
 
   // --- Requests helpers ---
@@ -28,19 +36,51 @@ export class IustaClient {
     config: AxiosRequestConfig,
     errorContext?: string
   ): Promise<T> {
-    try {
-      const response = await this.http.request<T>(config);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
-        const body =
-          typeof error.response.data === 'string'
-            ? error.response.data
-            : JSON.stringify(error.response.data);
-        throw new IustaApiError(error.response.status, body, errorContext);
+    const maxAttempts = config.method === 'GET' ? this.retries + 1 : 1;
+
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const response = await this.http.request<T>(config);
+        return response.data;
+      } catch (error) {
+        const mapped = this.toIustaError(error, errorContext);
+
+        if (attempt >= maxAttempts || !this.isRetryable(mapped)) {
+          throw mapped;
+        }
+
+        const delay = this.retryBaseDelayMs * 2 ** (attempt - 1);
+        console.warn(
+          `Iusta ${config.method} ${config.url} failed (${mapped.message}), ` +
+            `retry ${attempt}/${maxAttempts - 1} in ${delay}ms`
+        );
+        await Bun.sleep(delay);
       }
-      throw error;
     }
+  }
+
+  private toIustaError(error: unknown, errorContext?: string): unknown {
+    if (!axios.isAxiosError(error)) {
+      return error;
+    }
+    if (error.response) {
+      const body =
+        typeof error.response.data === 'string'
+          ? error.response.data
+          : JSON.stringify(error.response.data);
+      return new IustaApiError(error.response.status, body, errorContext);
+    }
+    return new IustaNetworkError(error.code, errorContext);
+  }
+
+  private isRetryable(error: unknown): error is IustaApiError | IustaNetworkError {
+    if (error instanceof IustaApiError) {
+      return error.upstreamStatus >= 500;
+    }
+    if (error instanceof IustaNetworkError) {
+      return !error.timedOut;
+    }
+    return false;
   }
 
   private async get<T = unknown>(
@@ -87,8 +127,6 @@ export class IustaClient {
   }
 
   // --- Custom Field Values (cross-entity) ---
-  // Read methods are generic over the requested `fields`: passing ['customerId'] types the
-  // result as Pick<…, 'customerId'>; passing nothing types it as the full entity.
 
   public async findCustomFieldValues<K extends IustaCustomFieldKeys = never>(
     where: Record<string, unknown>,

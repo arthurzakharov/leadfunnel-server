@@ -1,6 +1,6 @@
-import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { IustaClient } from '@/modules/iusta/iusta.client';
-import { IustaApiError } from '@/modules/iusta/iusta.errors';
+import { IustaApiError, IustaNetworkError } from '@/modules/iusta/iusta.errors';
 
 // A real local HTTP server stands in for Iusta, so these tests cover the whole transport:
 // URL building, filter serialisation, headers and error mapping.
@@ -30,12 +30,32 @@ const upstream = Bun.serve({
   },
 });
 
-const client = new IustaClient(upstream.url.origin, 'test-token');
+// No backoff delay in tests; retry behaviour itself is covered below.
+const client = new IustaClient(upstream.url.origin, 'test-token', { retryBaseDelayMs: 0 });
+
+/** Responds with each given response in turn, repeating the last one. */
+const respondInSequence = (...responses: (() => Response)[]) => {
+  let call = 0;
+  nextResponse = () => (responses[Math.min(call++, responses.length - 1)] as () => Response)();
+};
+
+/** URL of a port that nothing listens on, to simulate Iusta being unreachable. */
+const deadUrl = () => {
+  const dead = Bun.serve({ port: 0, fetch: () => new Response() });
+  const url = dead.url.origin;
+  dead.stop(true);
+  return url;
+};
+
+let warn: ReturnType<typeof spyOn<Console, 'warn'>>;
 
 beforeEach(() => {
   requests = [];
   nextResponse = () => Response.json({});
+  warn = spyOn(console, 'warn').mockImplementation(() => {});
 });
+
+afterEach(() => warn.mockRestore());
 
 afterAll(() => upstream.stop(true));
 
@@ -132,14 +152,120 @@ describe('error handling', () => {
     expect(error.responseBody).toBe('Internal failure');
   });
 
-  test('rethrows network errors unchanged (no upstream response)', async () => {
-    const dead = Bun.serve({ port: 0, fetch: () => new Response() });
-    const deadUrl = dead.url.origin;
-    dead.stop(true);
+  test('wraps network errors in IustaNetworkError (502) without leaking details', async () => {
+    const error = await new IustaClient(deadUrl(), 'secret-token', { retries: 0 })
+      .getCaseStandardFields('1')
+      .catch((e) => e);
 
-    const error = await new IustaClient(deadUrl, 'x').getCaseStandardFields('1').catch((e) => e);
+    expect(error).toBeInstanceOf(IustaNetworkError);
+    expect(error.status).toBe(502);
+    expect(error.code).toBe('ECONNREFUSED');
+    expect(error.timedOut).toBe(false);
+    expect(error.message).toBe(
+      'Error fetching Iusta case standard fields for caseId: 1 (Iusta unreachable: ECONNREFUSED)'
+    );
+    expect(error.cause).toBeUndefined();
+    expect(Bun.inspect(error)).not.toContain('secret-token');
+    expect(error.message).not.toContain('127.0.0.1');
+  });
 
-    expect(error).not.toBeInstanceOf(IustaApiError);
-    expect(error).toBeInstanceOf(Error);
+  test('maps timeouts to IustaNetworkError (504)', async () => {
+    const slow = Bun.serve({
+      port: 0,
+      fetch: async () => {
+        await Bun.sleep(200);
+        return Response.json({});
+      },
+    });
+    const slowClient = new IustaClient(slow.url.origin, 'x', { timeoutMs: 20 });
+
+    const error = await slowClient.getCaseStandardFields('1').catch((e) => e);
+    slow.stop(true);
+
+    expect(error).toBeInstanceOf(IustaNetworkError);
+    expect(error.status).toBe(504);
+    expect(error.timedOut).toBe(true);
+    expect(error.message).toContain('(Iusta timed out)');
+  });
+});
+
+describe('retries', () => {
+  test('retries a GET after a 5xx and returns the later success', async () => {
+    respondInSequence(
+      () => new Response('down', { status: 503 }),
+      () => Response.json({ id: 1 })
+    );
+
+    expect(await client.getCaseStandardFields('1')).toEqual({ id: 1 } as never);
+    expect(requests).toHaveLength(2);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  test('gives up after 2 retries (3 attempts) and throws the last error', async () => {
+    nextResponse = () => new Response('still down', { status: 500 });
+
+    const error = await client.getCaseStandardFields('1').catch((e) => e);
+
+    expect(error).toBeInstanceOf(IustaApiError);
+    expect(error.status).toBe(502);
+    expect(requests).toHaveLength(3);
+  });
+
+  test.each([400, 401, 404, 422])('does not retry a %i', async (status) => {
+    nextResponse = () => new Response('', { status });
+
+    await client.getCaseStandardFields('1').catch(() => {});
+
+    expect(requests).toHaveLength(1);
+  });
+
+  test('retries network errors, then throws IustaNetworkError', async () => {
+    const unreachable = new IustaClient(deadUrl(), 'x', { retryBaseDelayMs: 0 });
+
+    const error = await unreachable.getCaseStandardFields('1').catch((e) => e);
+
+    expect(error).toBeInstanceOf(IustaNetworkError);
+    expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  test('does not retry timeouts (each attempt already waited the full timeout)', async () => {
+    let calls = 0;
+    const slow = Bun.serve({
+      port: 0,
+      fetch: async () => {
+        calls++;
+        await Bun.sleep(200);
+        return Response.json({});
+      },
+    });
+    const slowClient = new IustaClient(slow.url.origin, 'x', { timeoutMs: 20 });
+
+    await slowClient.getCaseStandardFields('1').catch(() => {});
+    slow.stop(true);
+
+    expect(calls).toBe(1);
+  });
+
+  test('never retries non-idempotent requests (POST/PUT)', async () => {
+    nextResponse = () => new Response('down', { status: 503 });
+
+    // post/put are private (no write endpoints yet); TS only allows bracket access to them.
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member fails tsc
+    await client['post']('/Cases', {}).catch(() => {});
+    // biome-ignore lint/complexity/useLiteralKeys: dot access to a private member fails tsc
+    await client['put']('/Cases/1', {}).catch(() => {});
+
+    expect(requests.map((r) => r.method)).toEqual(['POST', 'PUT']);
+  });
+
+  test('backs off exponentially between attempts', async () => {
+    const sleep = spyOn(Bun, 'sleep');
+    const backoffClient = new IustaClient(upstream.url.origin, 'x', { retryBaseDelayMs: 1 });
+    nextResponse = () => new Response('down', { status: 500 });
+
+    await backoffClient.getCaseStandardFields('1').catch(() => {});
+
+    expect(sleep.mock.calls).toEqual([[1], [2]]);
+    sleep.mockRestore();
   });
 });

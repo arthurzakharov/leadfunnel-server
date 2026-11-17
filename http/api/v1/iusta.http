@@ -1,6 +1,3 @@
-### GET /api/v1/braze
-GET {{baseUrl}}/{{version}}/iusta
-
 ### GET caseId by externalId
 GET {{baseUrl}}/{{version}}/iusta/cases/by-external-id/{{externalId}}
 

@@ -27,9 +27,7 @@ const toClientStatus = (upstreamStatus: number): ContentfulStatusCode =>
 export class IustaApiError extends AppError {
   public readonly upstreamStatus: number;
   public readonly context?: string;
-  /** Redacted, truncated body: the only form of it that is printed when the error is logged. */
   public readonly responseBodyPreview: string;
-  // ES private field: invisible to console.log/console.error, so raw PII never reaches logs.
   readonly #responseBody: string;
 
   constructor(upstreamStatus: number, responseBody: string, context?: string) {
@@ -49,5 +47,23 @@ export class IustaApiError extends AppError {
 
   get isDuplicateEntry(): boolean {
     return this.upstreamStatus === 422 && this.responseBody.includes('ER_DUP_ENTRY');
+  }
+}
+
+const TIMEOUT_CODES = new Set(['ECONNABORTED', 'ETIMEDOUT']);
+
+export class IustaNetworkError extends AppError {
+  public readonly code?: string;
+  public readonly timedOut: boolean;
+  public readonly context?: string;
+
+  constructor(code: string | undefined, context?: string) {
+    const timedOut = code !== undefined && TIMEOUT_CODES.has(code);
+    const reason = timedOut ? 'Iusta timed out' : `Iusta unreachable${code ? `: ${code}` : ''}`;
+
+    super(timedOut ? 504 : 502, `${context ?? 'Iusta request failed'} (${reason})`);
+    this.code = code;
+    this.timedOut = timedOut;
+    this.context = context;
   }
 }
