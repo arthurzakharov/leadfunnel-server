@@ -1,2 +1,8 @@
 ### GET /api/v1/braze
 GET {{baseUrl}}/{{version}}/iusta
+
+### GET by external ID
+GET {{baseUrl}}/{{version}}/iusta/case-by-external-id/7ed5c724-d868-416f-99da-5dbaf7215a203
+
+### GET case standard fields by referenceId
+GET {{baseUrl}}/{{version}}/iusta/case-standard-fields-by-case-id/1104638
