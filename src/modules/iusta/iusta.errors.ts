@@ -50,6 +50,17 @@ export class IustaApiError extends AppError {
   }
 }
 
+export class IustaResponseValidationError extends AppError {
+  public readonly details: string;
+  public readonly context?: string;
+
+  constructor(details: string, context?: string) {
+    super(502, `${context ?? 'Iusta request failed'} (unexpected Iusta response format)`);
+    this.details = details;
+    this.context = context;
+  }
+}
+
 const TIMEOUT_CODES = new Set(['ECONNABORTED', 'ETIMEDOUT']);
 
 export class IustaNetworkError extends AppError {

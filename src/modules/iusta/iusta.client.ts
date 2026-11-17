@@ -1,49 +1,78 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import { z } from 'zod';
 import { createHttpClient } from '@/helpers/axios';
-import { IustaApiError, IustaNetworkError } from '@/modules/iusta/iusta.errors';
-import type {
-  IustaCaseStandardFieldKeys,
-  IustaCaseStandardFields,
-  IustaCustomerStandardFieldKeys,
-  IustaCustomerStandardFields,
-  IustaCustomField,
-  IustaCustomFieldKeys,
-  IustaSelected,
+import {
+  IustaApiError,
+  IustaNetworkError,
+  IustaResponseValidationError,
+} from '@/modules/iusta/iusta.errors';
+import {
+  type IustaCaseStandardFieldKeys,
+  type IustaCaseStandardFields,
+  type IustaCustomerStandardFieldKeys,
+  type IustaCustomerStandardFields,
+  type IustaCustomField,
+  type IustaCustomFieldKeys,
+  type IustaSelected,
+  iustaCaseStandardFieldsSchema,
+  iustaCustomerStandardFieldsSchema,
+  iustaCustomFieldSchema,
 } from '@/modules/iusta/iusta.types';
 
 export interface IustaClientOptions {
   retries?: number;
   retryBaseDelayMs?: number;
   timeoutMs?: number;
+  responseValidation?: 'warn' | 'strict' | 'off';
+}
+
+interface RequestOptions {
+  context?: string;
+  schema?: z.ZodType;
+}
+
+interface GetOptions extends RequestOptions {
+  params?: Record<string, unknown>;
 }
 
 export class IustaClient {
   private readonly http: AxiosInstance;
   private readonly retries: number;
   private readonly retryBaseDelayMs: number;
+  private readonly responseValidation: NonNullable<IustaClientOptions['responseValidation']>;
 
   constructor(apiUrl: string, apiToken: string, options: IustaClientOptions = {}) {
-    const { retries = 2, retryBaseDelayMs = 200, timeoutMs = 15_000 } = options;
+    const {
+      retries = 2,
+      retryBaseDelayMs = 200,
+      timeoutMs = 15_000,
+      responseValidation = 'warn',
+    } = options;
 
     this.http = createHttpClient(apiUrl, { authorization: apiToken }, timeoutMs);
     this.retries = retries;
     this.retryBaseDelayMs = retryBaseDelayMs;
+    this.responseValidation = responseValidation;
   }
 
   // --- Requests helpers ---
 
   private async request<T = unknown>(
     config: AxiosRequestConfig,
-    errorContext?: string
+    { context, schema }: RequestOptions = {}
   ): Promise<T> {
     const maxAttempts = config.method === 'GET' ? this.retries + 1 : 1;
 
     for (let attempt = 1; ; attempt++) {
       try {
         const response = await this.http.request<T>(config);
+        this.validateResponse(response.data, schema, config, context);
         return response.data;
       } catch (error) {
-        const mapped = this.toIustaError(error, errorContext);
+        if (error instanceof IustaResponseValidationError) {
+          throw error;
+        }
+        const mapped = this.toIustaError(error, context);
 
         if (attempt >= maxAttempts || !this.isRetryable(mapped)) {
           throw mapped;
@@ -57,6 +86,33 @@ export class IustaClient {
         await Bun.sleep(delay);
       }
     }
+  }
+
+  private validateResponse(
+    data: unknown,
+    schema: z.ZodType | undefined,
+    config: AxiosRequestConfig,
+    context?: string
+  ): void {
+    if (!schema || this.responseValidation === 'off') {
+      return;
+    }
+
+    const result = schema.safeParse(data);
+    if (result.success) {
+      return;
+    }
+
+    const details = z.prettifyError(result.error);
+
+    if (this.responseValidation === 'strict') {
+      throw new IustaResponseValidationError(details, context);
+    }
+
+    console.warn(
+      `Iusta ${config.method} ${config.url} returned an unexpected response format: ` +
+        details.replace(/\s*\n\s*/g, ' ')
+    );
   }
 
   private toIustaError(error: unknown, errorContext?: string): unknown {
@@ -83,20 +139,20 @@ export class IustaClient {
     return false;
   }
 
-  private async get<T = unknown>(
-    url: string,
-    params?: Record<string, unknown>,
-    errorContext?: string
-  ): Promise<T> {
-    return this.request<T>({ method: 'GET', url, params }, errorContext);
+  private async get<T = unknown>(url: string, { params, ...options }: GetOptions = {}) {
+    return this.request<T>({ method: 'GET', url, params }, options);
   }
 
-  private async post<T = unknown>(url: string, data?: unknown, errorContext?: string): Promise<T> {
-    return this.request<T>({ method: 'POST', url, data }, errorContext);
+  private async post<T = unknown>(url: string, data?: unknown, options?: RequestOptions) {
+    return this.request<T>({ method: 'POST', url, data }, options);
   }
 
-  private async put<T = unknown>(url: string, data?: unknown, errorContext?: string): Promise<T> {
-    return this.request<T>({ method: 'PUT', url, data }, errorContext);
+  private async put<T = unknown>(url: string, data?: unknown, options?: RequestOptions) {
+    return this.request<T>({ method: 'PUT', url, data }, options);
+  }
+
+  private selectSchema(schema: z.ZodObject, fields: readonly string[]): z.ZodObject {
+    return fields.length > 0 ? schema.pick(this.toFieldsMap(fields) as never) : schema;
   }
 
   private toFieldsMap(fields: readonly string[]): Record<string, true> {
@@ -131,15 +187,15 @@ export class IustaClient {
   public async findCustomFieldValues<K extends IustaCustomFieldKeys = never>(
     where: Record<string, unknown>,
     fields: readonly K[] = [],
-    errorContext = 'Error querying Iusta custom field values'
+    context = 'Error querying Iusta custom field values'
   ) {
     const filter = fields.length > 0 ? { where, fields: this.toFieldsMap(fields) } : { where };
 
-    return this.get<IustaSelected<IustaCustomField, K>[]>(
-      '/CustomFieldValues',
-      { filter },
-      errorContext
-    );
+    return this.get<IustaSelected<IustaCustomField, K>[]>('/CustomFieldValues', {
+      params: { filter },
+      context,
+      schema: z.array(this.selectSchema(iustaCustomFieldSchema, fields)),
+    });
   }
 
   // --- Case Read Methods ---
@@ -149,10 +205,12 @@ export class IustaClient {
     caseStandardFields: readonly K[] = []
   ) {
     const url = `/Cases/${encodeURIComponent(caseId)}`;
-    const params = this.buildStandardFieldsParams(caseStandardFields);
-    const error = `Error fetching Iusta case standard fields for caseId: ${caseId}`;
 
-    return this.get<IustaSelected<IustaCaseStandardFields, K>>(url, params, error);
+    return this.get<IustaSelected<IustaCaseStandardFields, K>>(url, {
+      params: this.buildStandardFieldsParams(caseStandardFields),
+      context: `Error fetching Iusta case standard fields for caseId: ${caseId}`,
+      schema: this.selectSchema(iustaCaseStandardFieldsSchema, caseStandardFields),
+    });
   }
 
   public async getCaseCustomFields<K extends IustaCustomFieldKeys = never>(
@@ -161,10 +219,12 @@ export class IustaClient {
     fields: readonly K[] = []
   ) {
     const url = `/Cases/${encodeURIComponent(caseId)}/CustomFieldValues`;
-    const params = this.buildCustomFieldParams(caseCustomFields, fields);
-    const error = `Error fetching Iusta case custom fields for caseId: ${caseId}`;
 
-    return this.get<IustaSelected<IustaCustomField, K>[]>(url, params, error);
+    return this.get<IustaSelected<IustaCustomField, K>[]>(url, {
+      params: this.buildCustomFieldParams(caseCustomFields, fields),
+      context: `Error fetching Iusta case custom fields for caseId: ${caseId}`,
+      schema: z.array(this.selectSchema(iustaCustomFieldSchema, fields)),
+    });
   }
 
   // --- Customer Read Methods ---
@@ -174,10 +234,12 @@ export class IustaClient {
     customerStandardFields: readonly K[] = []
   ) {
     const url = `/Customers/${encodeURIComponent(customerId)}`;
-    const params = this.buildStandardFieldsParams(customerStandardFields);
-    const error = `Error fetching Iusta customer ${customerId}`;
 
-    return this.get<IustaSelected<IustaCustomerStandardFields, K>>(url, params, error);
+    return this.get<IustaSelected<IustaCustomerStandardFields, K>>(url, {
+      params: this.buildStandardFieldsParams(customerStandardFields),
+      context: `Error fetching Iusta customer ${customerId}`,
+      schema: this.selectSchema(iustaCustomerStandardFieldsSchema, customerStandardFields),
+    });
   }
 
   public async getCustomerCustomFields<K extends IustaCustomFieldKeys = never>(
@@ -186,9 +248,11 @@ export class IustaClient {
     fields: readonly K[] = []
   ) {
     const url = `/Customers/${encodeURIComponent(customerId)}/CustomFieldValues`;
-    const params = this.buildCustomFieldParams(customerCustomFields, fields);
-    const error = `Error fetching Iusta customer ${customerId} custom field values`;
 
-    return this.get<IustaSelected<IustaCustomField, K>[]>(url, params, error);
+    return this.get<IustaSelected<IustaCustomField, K>[]>(url, {
+      params: this.buildCustomFieldParams(customerCustomFields, fields),
+      context: `Error fetching Iusta customer ${customerId} custom field values`,
+      schema: z.array(this.selectSchema(iustaCustomFieldSchema, fields)),
+    });
   }
 }

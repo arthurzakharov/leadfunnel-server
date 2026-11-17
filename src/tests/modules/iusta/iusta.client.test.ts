@@ -1,6 +1,10 @@
 import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { IustaClient } from '@/modules/iusta/iusta.client';
-import { IustaApiError, IustaNetworkError } from '@/modules/iusta/iusta.errors';
+import {
+  IustaApiError,
+  IustaNetworkError,
+  IustaResponseValidationError,
+} from '@/modules/iusta/iusta.errors';
 
 // A real local HTTP server stands in for Iusta, so these tests cover the whole transport:
 // URL building, filter serialisation, headers and error mapping.
@@ -31,7 +35,10 @@ const upstream = Bun.serve({
 });
 
 // No backoff delay in tests; retry behaviour itself is covered below.
-const client = new IustaClient(upstream.url.origin, 'test-token', { retryBaseDelayMs: 0 });
+const client = new IustaClient(upstream.url.origin, 'test-token', {
+  retryBaseDelayMs: 0,
+  responseValidation: 'off',
+});
 
 /** Responds with each given response in turn, repeating the last one. */
 const respondInSequence = (...responses: (() => Response)[]) => {
@@ -267,5 +274,110 @@ describe('retries', () => {
 
     expect(sleep.mock.calls).toEqual([[1], [2]]);
     sleep.mockRestore();
+  });
+});
+
+describe('response validation', () => {
+  const validCase = {
+    status: 1,
+    number: 'A-1',
+    name: null,
+    private: false,
+    closedAt: null,
+    invoicingContactId: null,
+    invoicingContactId2: null,
+    invoicingContactId3: null,
+    invoiceUuids: null,
+    comment: null,
+    id: 1,
+    customerId: 7,
+    assignedUserId: null,
+    closedBy: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: null,
+    createdBy: 1,
+    updatedBy: 1,
+    permissionSetId: 1,
+    caseGroupId: 1,
+  };
+
+  const clientWith = (responseValidation: 'warn' | 'strict' | 'off') =>
+    new IustaClient(upstream.url.origin, 'x', { retryBaseDelayMs: 0, responseValidation });
+
+  test('a valid full entity passes silently', async () => {
+    nextResponse = () => Response.json(validCase);
+
+    expect(await clientWith('strict').getCaseStandardFields('1')).toEqual(validCase);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test('only the requested fields are expected', async () => {
+    nextResponse = () => Response.json({ customerId: null });
+
+    await clientWith('strict').getCaseStandardFields('1', ['customerId']);
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test('custom field arrays are validated per item', async () => {
+    nextResponse = () => Response.json([{ referenceId: 1 }, { referenceId: '2' }]);
+
+    const error = await clientWith('strict')
+      .findCustomFieldValues({}, ['referenceId'])
+      .catch((e) => e);
+
+    expect(error).toBeInstanceOf(IustaResponseValidationError);
+    expect(error.details).toContain('[1].referenceId');
+  });
+
+  test("'warn': logs the mismatch once and returns the data unchanged", async () => {
+    const body = { ...validCase, createdBy: null, extra: 'kept' };
+    nextResponse = () => Response.json(body);
+
+    expect(await clientWith('warn').getCaseStandardFields('1')).toEqual(body as never);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toBe(
+      'Iusta GET /Cases/1 returned an unexpected response format: ' +
+        '✖ Invalid input: expected number, received null → at createdBy'
+    );
+  });
+
+  test("'strict': throws IustaResponseValidationError (502), no retry", async () => {
+    nextResponse = () => Response.json({ email: 12345 });
+
+    const error = await clientWith('strict')
+      .getCustomerStandardFields('7', ['email'])
+      .catch((e) => e);
+
+    expect(error).toBeInstanceOf(IustaResponseValidationError);
+    expect(error.status).toBe(502);
+    expect(error.message).toBe(
+      'Error fetching Iusta customer 7 (unexpected Iusta response format)'
+    );
+    expect(error.details).toContain('→ at email');
+    expect(requests).toHaveLength(1);
+  });
+
+  test("'off': skips validation entirely", async () => {
+    nextResponse = () => Response.json({ id: 'not-a-number' });
+
+    expect(await clientWith('off').getCaseStandardFields('1')).toEqual({
+      id: 'not-a-number',
+    } as never);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test('never logs the actual (possibly personal) values', async () => {
+    const email = ['jane', 'example.com'].join('@');
+    nextResponse = () => Response.json({ email: 1, name: email });
+
+    await clientWith('warn').getCustomerStandardFields('7', ['email', 'name']);
+    const error = await clientWith('strict')
+      .getCustomerStandardFields('7', ['email', 'name'])
+      .catch((e) => e);
+
+    expect(warn.mock.calls[0]?.[0]).toContain('→ at email');
+    expect(warn.mock.calls[0]?.[0]).not.toContain(email);
+    expect(Bun.inspect(error)).not.toContain(email);
   });
 });
