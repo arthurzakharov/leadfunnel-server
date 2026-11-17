@@ -32,6 +32,21 @@ const csvIdsSchema = z
       : []
   );
 
+const numericIdSchema = (name: string) =>
+  z.string().regex(/^\d{1,18}$/, { error: `${name} must be a positive integer` });
+
+export const externalIdParam = z.object({
+  externalId: z.string().trim().min(1).max(255),
+});
+
+export const caseIdParam = z.object({
+  caseId: numericIdSchema('caseId'),
+});
+
+export const customerIdParam = z.object({
+  customerId: numericIdSchema('customerId'),
+});
+
 export const caseStandardFieldsQuery = z.object({
   fields: createCsvEnumSchema(IUSTA_CASE_STANDARD_FIELD_KEYS),
 });

@@ -131,7 +131,7 @@ export class IustaClient {
     caseId: string,
     caseStandardFields: IustaCaseStandardFieldKeys[] = []
   ) {
-    const url = `/Cases/${caseId}`;
+    const url = `/Cases/${encodeURIComponent(caseId)}`;
     const params = this.buildStandardFieldsParams(caseStandardFields);
     const error = `Error fetching Iusta case standard fields for caseId: ${caseId}`;
 
@@ -143,7 +143,7 @@ export class IustaClient {
     caseCustomFields: (number | string)[] = [],
     fields: IustaCustomFieldKeys[] = []
   ) {
-    const url = `/Cases/${caseId}/CustomFieldValues`;
+    const url = `/Cases/${encodeURIComponent(caseId)}/CustomFieldValues`;
     const params = this.buildCustomFieldParams(caseCustomFields, fields);
     const error = `Error fetching Iusta case custom fields for caseId: ${caseId}`;
 
@@ -156,7 +156,7 @@ export class IustaClient {
     customerId: string,
     customerStandardFields: IustaCustomerStandardFieldKeys[] = []
   ) {
-    const url = `/Customers/${customerId}`;
+    const url = `/Customers/${encodeURIComponent(customerId)}`;
     const params = this.buildStandardFieldsParams(customerStandardFields);
     const error = `Error fetching Iusta customer ${customerId}`;
 
@@ -168,7 +168,7 @@ export class IustaClient {
     customerCustomFields: (number | string)[] = [],
     fields: IustaCustomFieldKeys[] = []
   ) {
-    const url = `/Customers/${customerId}/CustomFieldValues`;
+    const url = `/Customers/${encodeURIComponent(customerId)}/CustomFieldValues`;
     const params = this.buildCustomFieldParams(customerCustomFields, fields);
     const error = `Error fetching Iusta customer ${customerId} custom field values`;
 
