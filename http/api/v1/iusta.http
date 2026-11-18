@@ -1,24 +1,29 @@
 ### GET caseId by externalId
-GET {{baseUrl}}/{{version}}/iusta/cases/by-external-id/{{externalId}}
+GET {{baseUrl}}/internal/iusta/cases/by-external-id/{{externalId}}
+Authorization: Bearer {{internalApiKey}}
 
 ### CASE
 
 ### GET case standard fields by caseId
-GET {{baseUrl}}/{{version}}/iusta/cases/{{caseId}}/standard-fields
+GET {{baseUrl}}/internal/iusta/cases/{{caseId}}/standard-fields
     ?fields=id,customerId,createdAt,updatedAt
+Authorization: Bearer {{internalApiKey}}
 
 ### GET case custom fields by caseId
-GET {{baseUrl}}/{{version}}/iusta/cases/{{caseId}}/custom-fields
+GET {{baseUrl}}/internal/iusta/cases/{{caseId}}/custom-fields
     ?ids=23701,23683,23702
     &fields=customFieldId,value
+Authorization: Bearer {{internalApiKey}}
 
 ### CUSTOMER
 
 ### GET customer standard fields by customerId
-GET {{baseUrl}}/{{version}}/iusta/customers/{{customerId}}/standard-fields
+GET {{baseUrl}}/internal/iusta/customers/{{customerId}}/standard-fields
     ?fields=name,surname,id,phoneNumber
+Authorization: Bearer {{internalApiKey}}
 
 ### GET customer custom fields by customerId
-GET {{baseUrl}}/{{version}}/iusta/customers/{{customerId}}/custom-fields
+GET {{baseUrl}}/internal/iusta/customers/{{customerId}}/custom-fields
     ?ids=24535
     &fields=customFieldId,value
+Authorization: Bearer {{internalApiKey}}

@@ -1,0 +1,33 @@
+{
+  "name": "@arthurzakharov/leadfunnel-client",
+  "version": "0.1.0",
+  "description": "Typed client for the leadfunnel-server public API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/types/client/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/client/src/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "hono": "^4.13.0"
+  },
+  "scripts": {
+    "build": "bun run build.ts",
+    "prepublishOnly": "bun run build.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arthurzakharov/leadfunnel-server.git",
+    "directory": "client"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}

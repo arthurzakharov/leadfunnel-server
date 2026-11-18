@@ -1,0 +1,44 @@
+name: Publish client
+
+on:
+  push:
+    tags:
+      - 'client-v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: '@arthurzakharov'
+
+      - run: bun install --frozen-lockfile
+
+      - name: Check that the tag matches client/package.json
+        run: |
+          expected="client-v$(node -p "require('./client/package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match $expected"
+            exit 1
+          fi
+
+      - run: bun run typecheck
+      - run: bun run test
+
+      - run: npm publish
+        working-directory: client
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

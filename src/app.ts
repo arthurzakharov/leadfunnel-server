@@ -1,39 +1,58 @@
 import { Hono } from 'hono';
+import { bearerAuth } from 'hono/bearer-auth';
+import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { env } from '@/config/env';
+import { createPublicApi } from '@/api';
 import { errorHandler } from '@/helpers/error-handler';
 import { msg404, msgOk } from '@/helpers/responses';
-import { brazeRoutes } from '@/modules/braze/braze.routes';
-import { IustaClient } from '@/modules/iusta/iusta.client';
 import { createIustaRoutes } from '@/modules/iusta/iusta.routes';
-import { IustaService } from '@/modules/iusta/iusta.service';
-import { leadfunnelRoutes } from '@/modules/leadfunnel/leadfunnel.routes';
-import { ovmRoutes } from '@/modules/ovm/ovm.routes';
-import { stripeRoutes } from '@/modules/stripe/stripe.routes';
+import type { IustaService } from '@/modules/iusta/iusta.service';
 
-// --- Composition root: build dependencies once and inject them into route factories ---
-const iustaService = new IustaService(new IustaClient(env.IUSTA_URL, env.IUSTA_TOKEN));
+export type { AppType } from '@/api';
 
-const app = new Hono({
-  strict: false,
-});
+export interface AppConfig {
+  corsOrigins: string[];
+  internalApiKeys: string[];
+}
 
-app.use(logger());
+export interface AppDeps {
+  iustaService: IustaService;
+}
 
-app.get('/health', msgOk('Server is up'));
+export const createApp = ({ corsOrigins, internalApiKeys }: AppConfig, deps: AppDeps) => {
+  const app = new Hono({
+    strict: false,
+  });
 
-app.notFound(msg404());
+  app.use(logger());
 
-app.onError(errorHandler);
+  app.use(
+    '/api/*',
+    cors({
+      origin: corsOrigins,
+      allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowHeaders: ['Content-Type', 'Authorization'],
+      exposeHeaders: ['Retry-After', 'RateLimit-Limit', 'RateLimit-Remaining'],
+      maxAge: 600,
+    })
+  );
 
-const apiV1 = app
-  .basePath('/api/v1')
-  .route('/braze', brazeRoutes)
-  .route('/iusta', createIustaRoutes(iustaService))
-  .route('/leadfunnel', leadfunnelRoutes)
-  .route('/ovm', ovmRoutes)
-  .route('/stripe', stripeRoutes);
+  app.get('/health', msgOk('Server is up'));
 
-export type AppType = typeof apiV1;
+  app.notFound(msg404());
 
-export default app;
+  app.onError(errorHandler);
+
+  // --- Public API (browser apps, typed client) ---
+  app.route('/', createPublicApi());
+
+  // --- Internal API (API key only, not part of AppType) ---
+  if (internalApiKeys.length > 0) {
+    app
+      .basePath('/internal')
+      .use('*', bearerAuth({ token: internalApiKeys }))
+      .route('/iusta', createIustaRoutes(deps.iustaService));
+  }
+
+  return { app };
+};
