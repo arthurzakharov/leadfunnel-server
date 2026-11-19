@@ -15,6 +15,10 @@ const parse = (overrides: Record<string, string> = {}) =>
   envSchema.safeParse({ ...base, ...overrides });
 
 describe('envSchema', () => {
+  test.each(['0', '65536', '3.5', 'abc'])('rejects PORT=%p', (value) => {
+    expect(parse({ PORT: value }).success).toBe(false);
+  });
+
   test('applies safe defaults for the new variables', () => {
     const result = parse();
 

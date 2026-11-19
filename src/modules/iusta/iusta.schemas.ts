@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { splitCsv } from '@/helpers/zod-schemas';
 import {
   iustaCaseStandardFieldKeySchema,
   iustaCustomerStandardFieldKeySchema,
@@ -6,14 +7,6 @@ import {
 } from '@/modules/iusta/iusta.types';
 
 const MAX_CSV_IDS = 100;
-
-const splitCsv = (val?: string) =>
-  val
-    ? val
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : [];
 
 const createCsvEnumSchema = <E extends z.ZodEnum<Record<string, string>>>(allowedValues: E) =>
   z.string().optional().transform(splitCsv).pipe(z.array(allowedValues));
