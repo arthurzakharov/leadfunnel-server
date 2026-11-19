@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { splitCsv } from '@/helpers/zod-schemas';
+import { splitCsv } from '@/helpers/schemas';
 import {
   iustaCaseStandardFieldKeySchema,
   iustaCustomerStandardFieldKeySchema,
