@@ -6,11 +6,15 @@ import { createPublicApi } from '@/api/public';
 import { errorHandler } from '@/helpers/error-handler';
 import { msg404, msgOk } from '@/helpers/responses';
 
+// --- Types ---
+
 interface AppConfig extends InternalApiConfig {
   corsOrigins: '*' | string[];
 }
 
 type AppDeps = InternalApiDeps;
+
+// --- Hono app factory ---
 
 export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
   // --- Create Hono app ---

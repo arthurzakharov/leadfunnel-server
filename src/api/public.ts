@@ -6,12 +6,13 @@ import { stripeRoutes } from '@/modules/stripe/stripe.routes';
 
 // --- Public API: called from browsers, exposed to the typed client via AppType ---
 
-export const createPublicApi = () =>
-  new Hono()
+export const createPublicApi = () => {
+  return new Hono()
     .basePath('/api/v1')
     .route('/braze', brazeRoutes)
     .route('/leadfunnel', leadfunnelRoutes)
     .route('/ovm', ovmRoutes)
     .route('/stripe', stripeRoutes);
+};
 
 export type AppType = ReturnType<typeof createPublicApi>;
