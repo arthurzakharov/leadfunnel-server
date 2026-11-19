@@ -3,11 +3,11 @@ import { bearerAuth } from 'hono/bearer-auth';
 import { createIustaRoutes } from '@/modules/iusta/iusta.routes';
 import type { IustaService } from '@/modules/iusta/iusta.service';
 
-interface InternalApiConfig {
+export interface InternalApiConfig {
   internalApiKeys: string[];
 }
 
-interface InternalApiDeps {
+export interface InternalApiDeps {
   iustaService: IustaService;
 }
 

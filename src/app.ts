@@ -1,26 +1,21 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createInternalApi } from '@/api/internal';
+import { createInternalApi, type InternalApiConfig, type InternalApiDeps } from '@/api/internal';
 import { createPublicApi } from '@/api/public';
 import { errorHandler } from '@/helpers/error-handler';
 import { msg404, msgOk } from '@/helpers/responses';
-import type { IustaService } from '@/modules/iusta/iusta.service';
 
 export type { AppType } from '@/api/public';
 
-interface AppConfig {
+interface AppConfig extends InternalApiConfig {
   corsOrigins: '*' | string[];
-  internalApiKeys: string[];
 }
 
-interface AppDeps {
-  iustaService: IustaService;
-}
+type AppDeps = InternalApiDeps;
 
 export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
-  const { corsOrigins, internalApiKeys } = appConfig;
-  const { iustaService } = appDeps;
+  const { corsOrigins } = appConfig;
 
   const app = new Hono({
     strict: false,
@@ -52,7 +47,7 @@ export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
   app.route('/', createPublicApi());
 
   // --- Internal API (API key only, not part of AppType) ---
-  app.route('/', createInternalApi({ internalApiKeys }, { iustaService }));
+  app.route('/', createInternalApi(appConfig, appDeps));
 
   return { app };
 };
