@@ -4,7 +4,7 @@ import { onSignalInterrupt, onSignalTerminate } from '@/helpers/server-signals';
 import { IustaClient } from '@/modules/iusta/iusta.client';
 import { IustaService } from '@/modules/iusta/iusta.service';
 
-// ---  Create application with configs dependencies ---
+// --- Create app with config and dependencies ---
 
 const { app } = createApp(
   { corsOrigins: env.CORS_ORIGINS, internalApiKeys: env.INTERNAL_API_KEYS },
@@ -20,7 +20,7 @@ const server = Bun.serve({
 
 console.log(`Server is running on ${server.url}`);
 
-// --- Handle server shut dowm ---
+// --- Handle server shutdown ---
 
 process.on('SIGINT', () => onSignalInterrupt(server));
 process.on('SIGTERM', () => onSignalTerminate(server));

@@ -4,6 +4,8 @@ import { leadfunnelRoutes } from '@/modules/leadfunnel/leadfunnel.routes';
 import { ovmRoutes } from '@/modules/ovm/ovm.routes';
 import { stripeRoutes } from '@/modules/stripe/stripe.routes';
 
+// --- Public API: called from browsers, exposed to the typed client via AppType ---
+
 export const createPublicApi = () =>
   new Hono()
     .basePath('/api/v1')

@@ -11,6 +11,8 @@ export interface InternalApiDeps {
   iustaService: IustaService;
 }
 
+// --- Internal API: server-to-server only, behind Bearer auth, not part of AppType ---
+
 export const createInternalApi = (config: InternalApiConfig, deps: InternalApiDeps) =>
   new Hono()
     .basePath('/internal')

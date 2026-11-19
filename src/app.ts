@@ -19,7 +19,7 @@ export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
     strict: false,
   });
 
-  // --- Add Hono logger to see incoming request logs ---
+  // --- Hono logger for incoming requests ---
 
   app.use(logger());
 
