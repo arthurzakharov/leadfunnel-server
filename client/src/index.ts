@@ -1,5 +1,5 @@
 import { type ClientRequestOptions, hc } from 'hono/client';
-import type { AppType } from '@/api-public';
+import type { AppType } from '@/api/public';
 
 export {
   type ClientResponse,

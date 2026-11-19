@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createInternalApi } from '@/api-internal';
-import { createPublicApi } from '@/api-public';
+import { createInternalApi } from '@/api/internal';
+import { createPublicApi } from '@/api/public';
 import { errorHandler } from '@/helpers/error-handler';
 import { msg404, msgOk } from '@/helpers/responses';
 import type { IustaService } from '@/modules/iusta/iusta.service';
 
-export type { AppType } from '@/api-public';
+export type { AppType } from '@/api/public';
 
 interface AppConfig {
   corsOrigins: '*' | string[];
