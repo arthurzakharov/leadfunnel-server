@@ -11,7 +11,7 @@ import type { IustaService } from '@/modules/iusta/iusta.service';
 export type { AppType } from '@/api';
 
 export interface AppConfig {
-  corsOrigins: string[];
+  corsOrigins: '*' | string[];
   internalApiKeys: string[];
 }
 

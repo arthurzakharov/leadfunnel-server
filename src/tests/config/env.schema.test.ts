@@ -8,6 +8,7 @@ const base = {
   IUSTA_TOKEN: 'token',
   JWT_SECRET: 's'.repeat(32),
   INTERNAL_API_KEYS: KEY,
+  CORS_ORIGINS: 'https://leadfunnel.example.com',
 };
 
 const parse = (overrides: Record<string, string> = {}) =>
@@ -20,7 +21,6 @@ describe('envSchema', () => {
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({
       IUSTA_URL: 'https://iusta.example.com/api',
-      CORS_ORIGINS: [],
       TRUST_PROXY: false,
     });
   });
@@ -36,9 +36,24 @@ describe('envSchema', () => {
     ]);
   });
 
-  test.each(['not-a-url', 'ftp://example.com'])('rejects CORS origin %p', (origin) => {
-    expect(parse({ CORS_ORIGINS: origin }).success).toBe(false);
+  test('CORS_ORIGINS is required and cannot be empty', () => {
+    const { CORS_ORIGINS: _, ...withoutOrigins } = base;
+
+    expect(envSchema.safeParse(withoutOrigins).success).toBe(false);
+    expect(parse({ CORS_ORIGINS: '' }).success).toBe(false);
+    expect(parse({ CORS_ORIGINS: ' , ' }).success).toBe(false);
   });
+
+  test('CORS_ORIGINS=* allows all origins', () => {
+    expect(parse({ CORS_ORIGINS: ' * ' }).data?.CORS_ORIGINS).toBe('*');
+  });
+
+  test.each(['not-a-url', 'ftp://example.com', '*,https://leadfunnel.example.com'])(
+    'rejects CORS origin %p',
+    (origin) => {
+      expect(parse({ CORS_ORIGINS: origin }).success).toBe(false);
+    }
+  );
 
   test('JWT_SECRET is required and must be at least 32 characters', () => {
     const { JWT_SECRET: _, ...withoutSecret } = base;

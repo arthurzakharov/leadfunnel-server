@@ -9,8 +9,8 @@ const ALLOWED = 'https://leadfunnel.example.com';
 const iustaService = new IustaService(new IustaClient('http://iusta.invalid', 'x'));
 const resolveIds = spyOn(iustaService, 'resolveIdsByExternalId');
 
-const build = (internalApiKeys: string[] = [KEY]) =>
-  createApp({ corsOrigins: [ALLOWED], internalApiKeys }, { iustaService }).app;
+const build = (internalApiKeys: string[] = [KEY], corsOrigins: '*' | string[] = [ALLOWED]) =>
+  createApp({ corsOrigins, internalApiKeys }, { iustaService }).app;
 
 beforeEach(() => {
   resolveIds.mockReset();
@@ -31,8 +31,8 @@ describe('public API', () => {
 });
 
 describe('CORS', () => {
-  const preflight = (origin: string) =>
-    build().request('/api/v1/leadfunnel', {
+  const preflight = (origin: string, app = build()) =>
+    app.request('/api/v1/leadfunnel', {
       method: 'OPTIONS',
       headers: {
         Origin: origin,
@@ -53,6 +53,12 @@ describe('CORS', () => {
     const res = await preflight('https://evil.example.com');
 
     expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
+  test('allows any origin when configured with *', async () => {
+    const res = await preflight('https://any.example.com', build([KEY], '*'));
+
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
 
   test('is not applied to internal routes', async () => {

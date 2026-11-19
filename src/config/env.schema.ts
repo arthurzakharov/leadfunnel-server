@@ -23,10 +23,20 @@ export const envSchema = z.object({
     .min(1, 'IUSTA_TOKEN cannot be empty'),
   IUSTA_URL: httpUrl('IUSTA_URL').transform((url) => url.replace(/\/+$/, '')),
   CORS_ORIGINS: z
-    .string()
-    .default('')
-    .transform(splitCsv)
-    .pipe(z.array(httpUrl('CORS_ORIGINS entry').transform((url) => new URL(url).origin))),
+    .string({ error: 'CORS_ORIGINS is required' })
+    .trim()
+    .pipe(
+      z.literal('*').or(
+        z
+          .string()
+          .transform(splitCsv)
+          .pipe(
+            z
+              .array(httpUrl('CORS_ORIGINS entry').transform((url) => new URL(url).origin))
+              .min(1, 'CORS_ORIGINS must be * or contain at least one origin')
+          )
+      )
+    ),
   JWT_SECRET: z
     .string({ error: 'JWT_SECRET is required' })
     .min(32, 'JWT_SECRET must be at least 32 characters'),
