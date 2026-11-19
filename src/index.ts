@@ -11,10 +11,6 @@ const { app } = createApp(
   { iustaService }
 );
 
-if (env.INTERNAL_API_KEYS.length === 0) {
-  console.warn('INTERNAL_API_KEYS is empty: /internal routes are disabled');
-}
-
 const server = Bun.serve({
   fetch: app.fetch,
   port: env.PORT,

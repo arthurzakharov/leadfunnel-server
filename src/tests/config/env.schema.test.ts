@@ -7,6 +7,7 @@ const base = {
   IUSTA_URL: 'https://iusta.example.com/api/',
   IUSTA_TOKEN: 'token',
   JWT_SECRET: 's'.repeat(32),
+  INTERNAL_API_KEYS: KEY,
 };
 
 const parse = (overrides: Record<string, string> = {}) =>
@@ -20,7 +21,6 @@ describe('envSchema', () => {
     expect(result.data).toMatchObject({
       IUSTA_URL: 'https://iusta.example.com/api',
       CORS_ORIGINS: [],
-      INTERNAL_API_KEYS: [],
       TRUST_PROXY: false,
     });
   });
@@ -45,6 +45,14 @@ describe('envSchema', () => {
 
     expect(envSchema.safeParse(withoutSecret).success).toBe(false);
     expect(parse({ JWT_SECRET: 'short' }).success).toBe(false);
+  });
+
+  test('INTERNAL_API_KEYS is required and must contain at least one key', () => {
+    const { INTERNAL_API_KEYS: _, ...withoutKeys } = base;
+
+    expect(envSchema.safeParse(withoutKeys).success).toBe(false);
+    expect(parse({ INTERNAL_API_KEYS: '' }).success).toBe(false);
+    expect(parse({ INTERNAL_API_KEYS: ' , ' }).success).toBe(false);
   });
 
   test('INTERNAL_API_KEYS supports several keys for rotation, each at least 32 characters', () => {

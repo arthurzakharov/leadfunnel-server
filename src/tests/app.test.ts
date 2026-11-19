@@ -93,11 +93,4 @@ describe('internal API', () => {
     expect(res.status).toBe(status);
     expect(resolveIds).not.toHaveBeenCalled();
   });
-
-  test('is not mounted at all when no keys are configured', async () => {
-    const res = await internal(build([]), `Bearer ${KEY}`);
-
-    expect(res.status).toBe(404);
-    expect(resolveIds).not.toHaveBeenCalled();
-  });
 });

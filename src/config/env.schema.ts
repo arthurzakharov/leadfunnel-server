@@ -31,11 +31,12 @@ export const envSchema = z.object({
     .string({ error: 'JWT_SECRET is required' })
     .min(32, 'JWT_SECRET must be at least 32 characters'),
   INTERNAL_API_KEYS: z
-    .string()
-    .default('')
+    .string({ error: 'INTERNAL_API_KEYS is required' })
     .transform(splitCsv)
     .pipe(
-      z.array(z.string().min(32, 'each INTERNAL_API_KEYS entry must be at least 32 characters'))
+      z
+        .array(z.string().min(32, 'each INTERNAL_API_KEYS entry must be at least 32 characters'))
+        .min(1, 'INTERNAL_API_KEYS must contain at least one key')
     ),
   TRUST_PROXY: z.stringbool().default(false),
 });

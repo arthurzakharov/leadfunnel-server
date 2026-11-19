@@ -47,12 +47,10 @@ export const createApp = ({ corsOrigins, internalApiKeys }: AppConfig, deps: App
   app.route('/', createPublicApi());
 
   // --- Internal API (API key only, not part of AppType) ---
-  if (internalApiKeys.length > 0) {
-    app
-      .basePath('/internal')
-      .use('*', bearerAuth({ token: internalApiKeys }))
-      .route('/iusta', createIustaRoutes(deps.iustaService));
-  }
+  app
+    .basePath('/internal')
+    .use('*', bearerAuth({ token: internalApiKeys }))
+    .route('/iusta', createIustaRoutes(deps.iustaService));
 
   return { app };
 };

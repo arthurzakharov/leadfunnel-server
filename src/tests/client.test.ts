@@ -5,7 +5,7 @@ import { IustaService } from '@/modules/iusta/iusta.service';
 import { createClient, type InferResponseType } from '../../client/src';
 
 const { app } = createApp(
-  { corsOrigins: [], internalApiKeys: [] },
+  { corsOrigins: [], internalApiKeys: ['k'.repeat(32)] },
   { iustaService: new IustaService(new IustaClient('http://iusta.invalid', 'x')) }
 );
 
