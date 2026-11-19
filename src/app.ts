@@ -1,14 +1,13 @@
 import { Hono } from 'hono';
-import { bearerAuth } from 'hono/bearer-auth';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createPublicApi } from '@/api';
+import { createInternalApi } from '@/api-internal';
+import { createPublicApi } from '@/api-public';
 import { errorHandler } from '@/helpers/error-handler';
 import { msg404, msgOk } from '@/helpers/responses';
-import { createIustaRoutes } from '@/modules/iusta/iusta.routes';
 import type { IustaService } from '@/modules/iusta/iusta.service';
 
-export type { AppType } from '@/api';
+export type { AppType } from '@/api-public';
 
 interface AppConfig {
   corsOrigins: '*' | string[];
@@ -53,10 +52,7 @@ export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
   app.route('/', createPublicApi());
 
   // --- Internal API (API key only, not part of AppType) ---
-  app
-    .basePath('/internal')
-    .use('*', bearerAuth({ token: internalApiKeys }))
-    .route('/iusta', createIustaRoutes(iustaService));
+  app.route('/', createInternalApi({ internalApiKeys }, { iustaService }));
 
   return { app };
 };
