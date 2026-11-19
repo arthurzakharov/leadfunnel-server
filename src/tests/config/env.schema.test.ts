@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { envSchema } from '@/config/env.schema';
+import { envSchema } from '@/config/env.schemas';
 
 const KEY = 'k'.repeat(32);
 

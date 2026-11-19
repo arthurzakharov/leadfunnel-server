@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type EnvConfig, envSchema } from '@/config/env.schema';
+import { type EnvConfig, envSchema } from '@/config/env.schemas';
 
 export type { EnvConfig };
 
