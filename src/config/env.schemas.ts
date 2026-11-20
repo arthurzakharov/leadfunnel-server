@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { baseUrlSchema, httpUrlSchema, requiredStringSchema, splitCsv } from '@/helpers/schemas';
 
-// --- ZOD schema helper functions for env check only ---
+// --- ZOD schema helpers for env variables check only ---
 
 // `development` | `production` | `test`. Default: `development`.
 export const nodeEnvSchema = z.enum(['development', 'production', 'test']).default('development');
@@ -57,14 +57,11 @@ export const corsOriginsSchema = (name: string) => {
 // --- Full application env variables schema ---
 
 export const envSchema = z.object({
-  // --- Optional env variables ---
-
+  // Optional env variables
   NODE_ENV: nodeEnvSchema,
   PORT: portSchema,
   TRUST_PROXY: booleanSchema(false),
-
-  // --- Required env variables ---
-
+  // Required env variables
   IUSTA_TOKEN: requiredStringSchema('IUSTA_TOKEN'),
   IUSTA_URL: baseUrlSchema('IUSTA_URL'),
   CORS_ORIGINS: corsOriginsSchema('CORS_ORIGINS'),
@@ -73,4 +70,5 @@ export const envSchema = z.object({
 });
 
 // --- Extract from schema env types ---
+
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+// --- ZOD schema helpers with generic meaning ---
+
 // Splits a comma-separated string into trimmed, non-empty items. Empty input → `[]`.
 export const splitCsv = (value?: string) => {
   return value

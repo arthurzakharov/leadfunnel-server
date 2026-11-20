@@ -17,18 +17,15 @@ type AppDeps = InternalApiDeps;
 // --- Hono app factory ---
 
 export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
-  // --- Create Hono app ---
-
+  // Create Hono app
   const app = new Hono({
     strict: false,
   });
 
-  // --- Hono logger for incoming requests ---
-
+  // Hono logger for incoming requests
   app.use(logger());
 
-  // --- CORS for public API only (/api/*) ---
-
+  // CORS for public API only (/api/*)
   app.use(
     '/api/*',
     cors({
@@ -40,20 +37,14 @@ export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
     })
   );
 
-  // --- Health check, 404 and global error handler ---
-
+  // Health check, 404 and global error handler
   app.get('/health', msgOk('Server is up'));
-
   app.notFound(msg404());
-
   app.onError(errorHandler);
 
-  // --- Public API (browser apps, typed client, part of AppType) ---
-
+  // Public API (browser apps, typed client, part of AppType)
   app.route('/', createPublicApi());
-
-  // --- Internal API (API key only, not part of AppType) ---
-
+  // Internal API (API key only, not part of AppType)
   app.route('/', createInternalApi(appConfig, appDeps));
 
   return { app };
