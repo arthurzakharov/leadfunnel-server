@@ -4,7 +4,7 @@ import { msg, msgServerError } from '@/helpers/responses';
 
 // --- Helper functions ---
 
-// Clean tabs and new lines in pretify messages, replacing them with space symbols
+// Collapse multi-line messages (e.g. z.prettifyError) into one line
 const removeLinesAndTabs = (v: string) => {
   return v.replace(/\s*\n\s*/g, ' ');
 };
@@ -12,22 +12,22 @@ const removeLinesAndTabs = (v: string) => {
 // --- Main error handler for application ---
 
 export const errorHandler: ErrorHandler = (error, context) => {
-  // --- Errors we thrown intentionally. Must be instancied from HTTPException ---
+  // --- Intentional errors: AppError subclasses and Hono's own HTTPException ---
 
   if (error instanceof HTTPException) {
     const { res, name, message, status } = error;
 
     if (status < 500) {
-      // 4xx are expected outcomes we can log in detailed
+      // 4xx are expected outcomes: one short line, no stack
       const { method, path } = context.req;
 
       console.warn(`${method} ${path} → ${status} ${name}: ${removeLinesAndTabs(message)}`);
     } else {
-      // 5xx are unexpected failures we must log in full
+      // 5xx are server-side failures: log in full with stack and cause
       console.error(error);
     }
 
-    // Our 4xx always handled with msg, 5xx and not our 4xx are handled by res
+    // Ready-made res (e.g. bearerAuth) as is, otherwise standard JSON (all our AppErrors)
     return res || msg(message, status)(context);
   }
 
