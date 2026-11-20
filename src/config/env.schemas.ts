@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { baseUrlSchema, httpUrlSchema, requiredStringSchema, splitCsv } from '@/helpers/schemas';
 
+// --- ZOD schema helper functions for env check only ---
+
 // `development` | `production` | `test`. Default: `development`.
 export const nodeEnvSchema = z.enum(['development', 'production', 'test']).default('development');
 
@@ -52,6 +54,8 @@ export const corsOriginsSchema = (name: string) => {
     );
 };
 
+// --- Full application env variables schema ---
+
 export const envSchema = z.object({
   // --- Optional env variables ---
 
@@ -68,4 +72,5 @@ export const envSchema = z.object({
   INTERNAL_API_KEYS: secretListSchema('INTERNAL_API_KEYS'),
 });
 
+// --- Extract from schema env types ---
 export type EnvConfig = z.infer<typeof envSchema>;

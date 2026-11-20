@@ -15,4 +15,6 @@ export const createPublicApi = () => {
     .route('/stripe', stripeRoutes);
 };
 
+// --- Types ---
+
 export type AppType = ReturnType<typeof createPublicApi>;
