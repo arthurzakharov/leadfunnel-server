@@ -6,6 +6,7 @@ import {
   IustaNetworkError,
   IustaResponseValidationError,
 } from '@/modules/iusta/iusta.errors';
+import { serializeLoopbackParams } from '@/modules/iusta/iusta.helpers';
 import {
   type IustaCaseStandardFieldKeys,
   type IustaCaseStandardFields,
@@ -48,8 +49,12 @@ export class IustaClient {
       timeoutMs = 15_000,
       responseValidation = 'warn',
     } = options;
+    const headers = { authorization: apiToken };
+    const configs = {
+      paramsSerializer: { serialize: serializeLoopbackParams },
+    };
 
-    this.http = createHttpClient(apiUrl, { authorization: apiToken }, timeoutMs);
+    this.http = createHttpClient(apiUrl, headers, timeoutMs, configs);
     this.retries = retries;
     this.retryBaseDelayMs = retryBaseDelayMs;
     this.responseValidation = responseValidation;
