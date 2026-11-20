@@ -42,9 +42,8 @@ export const createApp = (appConfig: AppConfig, appDeps: AppDeps) => {
   app.notFound(msg404());
   app.onError(errorHandler);
 
-  // Public API (browser apps, typed client, part of AppType)
+  // Connect Public and Internal APIs
   app.route('/', createPublicApi());
-  // Internal API (API key only, not part of AppType)
   app.route('/', createInternalApi(appConfig, appDeps));
 
   return { app };
