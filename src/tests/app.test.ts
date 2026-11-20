@@ -90,13 +90,15 @@ describe('internal API', () => {
   });
 
   test.each([
-    [undefined, 401],
-    ['Bearer wrong-key', 401],
-    [`Basic ${KEY}`, 400],
-  ])('rejects Authorization=%p with %i', async (authorization, status) => {
+    [undefined, 401, 'Unauthorized', 'Missing API key'],
+    ['Bearer wrong-key', 401, 'Unauthorized', 'Invalid API key'],
+    [`Basic ${KEY}`, 400, 'Bad Request', 'Invalid Authorization header'],
+  ])('rejects Authorization=%p with %i', async (authorization, code, status, message) => {
     const res = await internal(build(), authorization);
 
-    expect(res.status).toBe(status);
+    expect(res.status).toBe(code);
+    expect(res.headers.get('WWW-Authenticate')).toStartWith('Bearer');
+    expect(await res.json()).toEqual({ code, status, message });
     expect(resolveIds).not.toHaveBeenCalled();
   });
 });
